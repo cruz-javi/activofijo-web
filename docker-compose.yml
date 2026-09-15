@@ -1,0 +1,21 @@
+services:
+  web:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    container_name: activofijo-web
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      CORE_API_URL: http://core:3000
+      NEXT_PUBLIC_CORE_API_URL: http://localhost:3000
+      SESSION_SECRET: ${SESSION_SECRET:-super_secret_cookie_encryption_key_32_chars!}
+    ports:
+      - "3001:3001"
+    networks:
+      - activofijo-net
+
+networks:
+  activofijo-net:
+    external: true
