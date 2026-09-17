@@ -13,6 +13,15 @@ Panel de administración web para la gestión de inventario y activos fijos de l
 - **Estado y Tablas**: `@tanstack/react-query` y `@tanstack/react-table`.
 - **Contratos de API**: Cliente fuertemente tipado generado vía `openapi-typescript` y `openapi-fetch` a partir del `openapi.json` del core.
 
+## Sistema de diseño
+
+Antes de tocar UI (tokens, tipografía, componentes de `src/components/`), lee
+[`.interface-design/system.md`](./.interface-design/system.md) — documenta la
+dirección visual ("ledger patrimonial UAGRM"), la paleta/tipografía y los
+componentes clave (`AssetTag`, `Stamp`, `Sidebar`, `PageHeader`, etc.).
+Mantenlo actualizado si cambias algo de esto para que el equipo no reinvente
+el sistema en cada PR.
+
 ## Requisitos previos
 
 - Node.js >= 22.12
