@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 
 interface ActivoItem {
   id: string;
@@ -14,13 +15,23 @@ interface ActivoItem {
   version: number;
 }
 
+const ESTADO_OPTIONS = ['BUENO', 'REGULAR', 'EXCELENTE', 'MALO', 'BAJA'];
+
 export default function ActivosPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
   const [activos, setActivos] = useState<ActivoItem[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Form state
+  // Filtros (inicializados desde la URL para permitir deep-linking)
+  const [search, setSearch] = useState(searchParams.get('search') || '');
+  const [ubicacionFilter, setUbicacionFilter] = useState(searchParams.get('ubicacion') || '');
+  const [estadoFilter, setEstadoFilter] = useState(searchParams.get('estado') || '');
+
+  // Form state (alta)
   const [showForm, setShowForm] = useState(false);
   const [codigo, setCodigo] = useState('');
   const [descripcion, setDescripcion] = useState('');
@@ -28,12 +39,29 @@ export default function ActivosPage() {
   const [ubicacion, setUbicacion] = useState('Campus Central - FICCT');
   const [valor, setValor] = useState(1500);
 
-  const router = useRouter();
+  // Form state (edición)
+  const [editingItem, setEditingItem] = useState<ActivoItem | null>(null);
+  const [editDescripcion, setEditDescripcion] = useState('');
+  const [editGrupoContable, setEditGrupoContable] = useState('');
+  const [editUbicacion, setEditUbicacion] = useState('');
+  const [editEstado, setEditEstado] = useState('');
+  const [editValor, setEditValor] = useState(0);
+  const [editSaving, setEditSaving] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
+
+  const buildQuery = () => {
+    const params = new URLSearchParams({ limit: '50', offset: '0' });
+    if (search) params.set('search', search);
+    if (ubicacionFilter) params.set('ubicacion', ubicacionFilter);
+    if (estadoFilter) params.set('estado', estadoFilter);
+    return params;
+  };
 
   const fetchActivos = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/proxy/activos?limit=50&offset=0');
+      const params = buildQuery();
+      const res = await fetch(`/api/proxy/activos?${params.toString()}`);
       if (res.status === 401) {
         router.push('/login');
         return;
@@ -48,9 +76,21 @@ export default function ActivosPage() {
     }
   };
 
+  // Refleja los filtros en la URL (deep-linking) y dispara la consulta,
+  // con debounce para no golpear la API en cada tecla de la búsqueda.
   useEffect(() => {
-    fetchActivos();
-  }, []);
+    const timeout = setTimeout(() => {
+      const params = buildQuery();
+      params.delete('limit');
+      params.delete('offset');
+      const qs = params.toString();
+      router.replace(qs ? `/activos?${qs}` : '/activos');
+      fetchActivos();
+    }, 300);
+
+    return () => clearTimeout(timeout);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search, ubicacionFilter, estadoFilter]);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -82,6 +122,52 @@ export default function ActivosPage() {
     }
   };
 
+  const startEdit = (item: ActivoItem) => {
+    setShowForm(false);
+    setEditingItem(item);
+    setEditDescripcion(item.descripcion);
+    setEditGrupoContable(item.grupoContable);
+    setEditUbicacion(item.ubicacion);
+    setEditEstado(item.estado);
+    setEditValor(item.valor);
+    setEditError(null);
+  };
+
+  const cancelEdit = () => setEditingItem(null);
+
+  const handleUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingItem) return;
+    setEditSaving(true);
+    setEditError(null);
+    try {
+      const res = await fetch(`/api/proxy/activos/${editingItem.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          descripcion: editDescripcion,
+          grupoContable: editGrupoContable,
+          ubicacion: editUbicacion,
+          estado: editEstado,
+          valor: Number(editValor),
+          expectedVersion: editingItem.version,
+        }),
+      });
+
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.message || 'Error al actualizar el activo');
+      }
+
+      setEditingItem(null);
+      await fetchActivos();
+    } catch (err: any) {
+      setEditError(err.message);
+    } finally {
+      setEditSaving(false);
+    }
+  };
+
   const handleLogout = async () => {
     await fetch('/api/auth/logout', { method: 'POST' });
     router.push('/login');
@@ -94,7 +180,12 @@ export default function ActivosPage() {
         <div className="mx-auto flex max-w-7xl items-center justify-between">
           <div>
             <h1 className="text-lg font-semibold text-slate-900">UAGRM — Activo Fijo</h1>
-            <p className="text-xs text-slate-500">Módulo de Catálogo e Inventario Patrimonial</p>
+            <nav className="mt-1 flex gap-4 text-xs text-slate-500">
+              <span className="font-medium text-slate-900">Catálogo</span>
+              <Link href="/sincronizacion" className="hover:text-slate-900 hover:underline">
+                Sincronización
+              </Link>
+            </nav>
           </div>
           <button
             onClick={handleLogout}
@@ -112,11 +203,52 @@ export default function ActivosPage() {
             <p className="text-sm text-slate-500">{total} registros contabilizados</p>
           </div>
           <button
-            onClick={() => setShowForm(!showForm)}
+            onClick={() => {
+              setEditingItem(null);
+              setShowForm(!showForm);
+            }}
             className="rounded bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
           >
             {showForm ? 'Cancelar' : 'Nuevo Activo'}
           </button>
+        </div>
+
+        <div className="mb-6 grid grid-cols-1 gap-3 rounded-lg border border-slate-200 bg-white p-4 shadow-sm md:grid-cols-3">
+          <div>
+            <label className="block text-xs font-medium text-slate-600">Buscar por código</label>
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="UAGRM-2026-001"
+              className="mt-1 w-full rounded border border-slate-300 px-3 py-1.5 text-sm"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-slate-600">Ubicación</label>
+            <input
+              type="text"
+              value={ubicacionFilter}
+              onChange={(e) => setUbicacionFilter(e.target.value)}
+              placeholder="FICCT, Facultad de Derecho..."
+              className="mt-1 w-full rounded border border-slate-300 px-3 py-1.5 text-sm"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-slate-600">Estado</label>
+            <select
+              value={estadoFilter}
+              onChange={(e) => setEstadoFilter(e.target.value)}
+              className="mt-1 w-full rounded border border-slate-300 bg-white px-3 py-1.5 text-sm"
+            >
+              <option value="">Todos</option>
+              {ESTADO_OPTIONS.map((opt) => (
+                <option key={opt} value={opt}>
+                  {opt}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
         {showForm && (
@@ -189,6 +321,91 @@ export default function ActivosPage() {
           </div>
         )}
 
+        {editingItem && (
+          <div className="mb-6 rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+            <h3 className="mb-4 text-sm font-semibold uppercase tracking-wider text-slate-600">
+              Editar Activo — {editingItem.codigo} (v{editingItem.version})
+            </h3>
+            {editError && (
+              <div className="mb-4 rounded border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+                {editError}
+              </div>
+            )}
+            <form onSubmit={handleUpdate} className="grid grid-cols-1 gap-4 md:grid-cols-3">
+              <div className="md:col-span-2">
+                <label className="block text-xs font-medium text-slate-600">Descripción</label>
+                <input
+                  type="text"
+                  value={editDescripcion}
+                  onChange={(e) => setEditDescripcion(e.target.value)}
+                  required
+                  className="mt-1 w-full rounded border border-slate-300 px-3 py-1.5 text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-600">Grupo Contable</label>
+                <input
+                  type="text"
+                  value={editGrupoContable}
+                  onChange={(e) => setEditGrupoContable(e.target.value)}
+                  required
+                  className="mt-1 w-full rounded border border-slate-300 px-3 py-1.5 text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-600">Ubicación</label>
+                <input
+                  type="text"
+                  value={editUbicacion}
+                  onChange={(e) => setEditUbicacion(e.target.value)}
+                  required
+                  className="mt-1 w-full rounded border border-slate-300 px-3 py-1.5 text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-600">Estado</label>
+                <select
+                  value={editEstado}
+                  onChange={(e) => setEditEstado(e.target.value)}
+                  className="mt-1 w-full rounded border border-slate-300 bg-white px-3 py-1.5 text-sm"
+                >
+                  {ESTADO_OPTIONS.map((opt) => (
+                    <option key={opt} value={opt}>
+                      {opt}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-600">Valor (Bs.)</label>
+                <input
+                  type="number"
+                  value={editValor}
+                  onChange={(e) => setEditValor(Number(e.target.value))}
+                  required
+                  className="mt-1 w-full rounded border border-slate-300 px-3 py-1.5 text-sm"
+                />
+              </div>
+              <div className="flex items-end gap-2 md:col-span-3">
+                <button
+                  type="submit"
+                  disabled={editSaving}
+                  className="rounded bg-slate-900 px-6 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50"
+                >
+                  {editSaving ? 'Guardando...' : 'Guardar Cambios'}
+                </button>
+                <button
+                  type="button"
+                  onClick={cancelEdit}
+                  className="rounded border border-slate-300 px-6 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
+
         {loading ? (
           <div className="rounded-lg border border-slate-200 bg-white p-12 text-center text-sm text-slate-500">
             Cargando catálogo...
@@ -213,6 +430,7 @@ export default function ActivosPage() {
                   <th className="px-4 py-3">Estado</th>
                   <th className="px-4 py-3 text-right">Valor</th>
                   <th className="px-4 py-3 text-center">Versión</th>
+                  <th className="px-4 py-3 text-center">Acciones</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 bg-white">
@@ -234,6 +452,15 @@ export default function ActivosPage() {
                     </td>
                     <td className="px-4 py-3 text-center font-mono text-xs text-slate-500">
                       v{item.version}
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <button
+                        onClick={() => startEdit(item)}
+                        disabled={item.estado === 'BAJA'}
+                        className="rounded border border-slate-300 px-2.5 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                      >
+                        Editar
+                      </button>
                     </td>
                   </tr>
                 ))}
