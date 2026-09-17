@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
@@ -17,7 +17,7 @@ interface ActivoItem {
 
 const ESTADO_OPTIONS = ['BUENO', 'REGULAR', 'EXCELENTE', 'MALO', 'BAJA'];
 
-export default function ActivosPage() {
+function ActivosContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -470,5 +470,13 @@ export default function ActivosPage() {
         )}
       </main>
     </div>
+  );
+}
+
+export default function ActivosPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-slate-50 p-12 text-center text-sm text-slate-500">Cargando catálogo...</div>}>
+      <ActivosContent />
+    </Suspense>
   );
 }
