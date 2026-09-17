@@ -2,19 +2,24 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Archive, LogOut, RefreshCw } from 'lucide-react';
+import { Archive, LogOut, RefreshCw, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/Button';
 import { Stamp } from '@/components/Stamp';
+import { useCurrentUser } from '@/lib/hooks/useCurrentUser';
 
 const NAV_ITEMS = [
   { href: '/activos', label: 'Catálogo', icon: Archive },
   { href: '/sincronizacion', label: 'Sincronización', icon: RefreshCw },
 ];
 
+const ADMIN_NAV_ITEMS = [{ href: '/usuarios', label: 'Usuarios', icon: Users }];
+
 export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
+  const { user } = useCurrentUser();
+  const navItems = user?.rol === 'ADMIN' ? [...NAV_ITEMS, ...ADMIN_NAV_ITEMS] : NAV_ITEMS;
 
   const handleLogout = async () => {
     await fetch('/api/auth/logout', { method: 'POST' });
@@ -39,7 +44,7 @@ export function Sidebar() {
           Patrimonio
         </p>
         <ul className="flex flex-col gap-0.5">
-          {NAV_ITEMS.map((item) => {
+          {navItems.map((item) => {
             const active = pathname === item.href;
             return (
               <li key={item.href}>

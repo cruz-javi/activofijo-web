@@ -15,3 +15,10 @@ export const ESTADO_SYNC_TONE: Record<string, Tone> = {
   COMPLETADA_CON_ERRORES: 'accent',
   FALLIDA: 'danger',
 };
+
+// Rol de un usuario del sistema.
+export const ROL_TONE: Record<string, Tone> = {
+  ADMIN: 'brand',
+  OFICINA: 'accent',
+  CAMPO: 'neutral',
+};
