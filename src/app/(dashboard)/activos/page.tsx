@@ -2,7 +2,7 @@
 
 import { Suspense, useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Plus, X } from 'lucide-react';
+import { Plus, X, History } from 'lucide-react';
 import { AssetTag } from '@/components/AssetTag';
 import { Stamp } from '@/components/Stamp';
 import { Badge } from '@/components/ui/Badge';
@@ -27,6 +27,40 @@ interface ActivoItem {
   estado: string;
   valor: number;
   version: number;
+}
+
+interface EventoHistorial {
+  version: number;
+  eventType: string;
+  recordedAt: string;
+  payload: Record<string, unknown>;
+}
+
+interface Depreciacion {
+  valorOriginal: number;
+  valorActual: number;
+  depreciacionAcumulada: number;
+  antiguedadAnios: number;
+  vidaUtilRestanteAnios: number;
+  totalmenteDepreciado: boolean;
+  reglaAplicada: { vidaUtilAnios: number; valorResidualPorcentaje: number };
+}
+
+interface ReconstruccionResultado {
+  codigo: string;
+  descripcion: string;
+  ubicacion: string;
+  estado: string;
+  valor: number;
+  version: number;
+  _meta: { eventType: string; version: number; recordedAt: string; integridadVerificada: boolean };
+}
+
+function extractErrorMessage(errData: any, fallback: string): string {
+  if (Array.isArray(errData?.details) && errData.details.length > 0) {
+    return errData.details.map((d: any) => d.message).join(' ');
+  }
+  return errData?.message || fallback;
 }
 
 const ESTADO_OPTIONS = ['BUENO', 'REGULAR', 'EXCELENTE', 'MALO', 'BAJA'];
@@ -76,6 +110,19 @@ function ActivosContent() {
   const [editValor, setEditValor] = useState(0);
   const [editSaving, setEditSaving] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
+
+  // Historial / depreciación / reconstrucción histórica (HU03 + HU05)
+  const [historialItem, setHistorialItem] = useState<ActivoItem | null>(null);
+  const [eventos, setEventos] = useState<EventoHistorial[]>([]);
+  const [eventosLoading, setEventosLoading] = useState(false);
+  const [depreciacion, setDepreciacion] = useState<Depreciacion | null>(null);
+  const [depreciacionError, setDepreciacionError] = useState<string | null>(null);
+  const [reconstruccionFecha, setReconstruccionFecha] = useState('');
+  const [reconstruccionResultado, setReconstruccionResultado] = useState<ReconstruccionResultado | null>(
+    null,
+  );
+  const [reconstruccionError, setReconstruccionError] = useState<string | null>(null);
+  const [reconstruccionLoading, setReconstruccionLoading] = useState(false);
 
   const buildQuery = () => {
     const params = new URLSearchParams({
@@ -157,6 +204,7 @@ function ActivosContent() {
 
   const startEdit = (item: ActivoItem) => {
     setShowForm(false);
+    setHistorialItem(null);
     setEditingItem(item);
     setEditDescripcion(item.descripcion);
     setEditGrupoContable(item.grupoContable);
@@ -202,6 +250,58 @@ function ActivosContent() {
     }
   };
 
+  const openHistorial = async (item: ActivoItem) => {
+    setShowForm(false);
+    setEditingItem(null);
+    setHistorialItem(item);
+    setReconstruccionResultado(null);
+    setReconstruccionError(null);
+    setReconstruccionFecha('');
+    setDepreciacionError(null);
+    setDepreciacion(null);
+    setEventosLoading(true);
+    try {
+      const [resEventos, resDepreciacion] = await Promise.all([
+        fetch(`/api/proxy/activos/${item.id}/historial`),
+        fetch(`/api/proxy/activos/${item.id}/depreciacion`),
+      ]);
+      if (resEventos.ok) setEventos(await resEventos.json());
+      if (resDepreciacion.ok) {
+        setDepreciacion(await resDepreciacion.json());
+      } else {
+        const errData = await resDepreciacion.json();
+        setDepreciacionError(extractErrorMessage(errData, 'No se pudo calcular la depreciación'));
+      }
+    } finally {
+      setEventosLoading(false);
+    }
+  };
+
+  const closeHistorial = () => setHistorialItem(null);
+
+  const handleReconstruir = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!historialItem || !reconstruccionFecha) return;
+    setReconstruccionLoading(true);
+    setReconstruccionError(null);
+    setReconstruccionResultado(null);
+    try {
+      const fechaIso = new Date(reconstruccionFecha).toISOString();
+      const res = await fetch(
+        `/api/proxy/activos/${historialItem.id}/reconstruccion?fecha=${encodeURIComponent(fechaIso)}`,
+      );
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(extractErrorMessage(data, 'No se pudo reconstruir el estado en esa fecha'));
+      }
+      setReconstruccionResultado(data);
+    } catch (err: any) {
+      setReconstruccionError(err.message);
+    } finally {
+      setReconstruccionLoading(false);
+    }
+  };
+
   return (
     <>
       <PageHeader
@@ -211,6 +311,7 @@ function ActivosContent() {
           <Button
             onClick={() => {
               setEditingItem(null);
+              setHistorialItem(null);
               setCreateError(null);
               setShowForm(!showForm);
             }}
@@ -425,6 +526,147 @@ function ActivosContent() {
         </Panel>
       )}
 
+      {historialItem && (
+        <Panel className="mb-6">
+          <div className="mb-5 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <AssetTag code={historialItem.codigo} />
+              <span className="text-xs text-ink-tertiary">{historialItem.descripcion}</span>
+            </div>
+            <Button variant="ghost" size="sm" onClick={closeHistorial}>
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+
+          {eventosLoading ? (
+            <p className="text-sm text-ink-tertiary">Cargando historial…</p>
+          ) : (
+            <div className="flex flex-col gap-6">
+              <div>
+                <p className="mb-3 text-[11px] font-medium uppercase tracking-wider text-ink-tertiary">
+                  Línea de tiempo de eventos
+                </p>
+                <ul className="flex flex-col gap-2">
+                  {eventos.map((ev) => (
+                    <li
+                      key={ev.version}
+                      className="flex items-center gap-3 rounded-sm border border-border-soft bg-paper px-3 py-2 text-sm"
+                    >
+                      <Stamp className="h-6 w-6 text-[9px]">v{ev.version}</Stamp>
+                      <span className="font-medium text-ink">{ev.eventType}</span>
+                      <span className="ml-auto font-mono text-xs text-ink-tertiary">
+                        {new Date(ev.recordedAt).toLocaleString('es-BO')}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              <div className="border-t border-border-soft pt-4">
+                <p className="mb-3 text-[11px] font-medium uppercase tracking-wider text-ink-tertiary">
+                  Depreciación estimada (hoy)
+                </p>
+                {depreciacionError ? (
+                  <p className="text-sm text-ink-tertiary">{depreciacionError}</p>
+                ) : depreciacion ? (
+                  <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+                    <div>
+                      <p className="text-[11px] text-ink-tertiary">Valor original</p>
+                      <p className="font-mono text-sm font-semibold text-ink">
+                        Bs. {depreciacion.valorOriginal.toFixed(2)}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[11px] text-ink-tertiary">Valor actual</p>
+                      <p className="font-mono text-sm font-semibold text-ink">
+                        Bs. {depreciacion.valorActual.toFixed(2)}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[11px] text-ink-tertiary">Depreciación acumulada</p>
+                      <p className="font-mono text-sm font-semibold text-ink">
+                        Bs. {depreciacion.depreciacionAcumulada.toFixed(2)}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[11px] text-ink-tertiary">Vida útil restante</p>
+                      <p className="font-mono text-sm font-semibold text-ink">
+                        {depreciacion.vidaUtilRestanteAnios.toFixed(1)} años
+                      </p>
+                    </div>
+                    {depreciacion.totalmenteDepreciado && (
+                      <div className="col-span-full">
+                        <Badge tone="accent">Totalmente depreciado</Badge>
+                      </div>
+                    )}
+                  </div>
+                ) : null}
+              </div>
+
+              <div className="border-t border-border-soft pt-4">
+                <p className="mb-3 text-[11px] font-medium uppercase tracking-wider text-ink-tertiary">
+                  Reconstruir estado a una fecha (time-travel)
+                </p>
+                <form onSubmit={handleReconstruir} className="flex flex-wrap items-end gap-3">
+                  <Field label="Fecha y hora" htmlFor="reconstruccion-fecha">
+                    <Input
+                      id="reconstruccion-fecha"
+                      type="datetime-local"
+                      value={reconstruccionFecha}
+                      onChange={(e) => setReconstruccionFecha(e.target.value)}
+                      required
+                    />
+                  </Field>
+                  <Button type="submit" variant="secondary" disabled={reconstruccionLoading}>
+                    {reconstruccionLoading ? 'Reconstruyendo…' : 'Reconstruir'}
+                  </Button>
+                </form>
+
+                {reconstruccionError && (
+                  <p className="mt-3 text-sm text-danger">{reconstruccionError}</p>
+                )}
+
+                {reconstruccionResultado && (
+                  <div className="mt-4 rounded-sm border border-border-soft bg-paper p-4">
+                    <div className="mb-3 flex items-center gap-2">
+                      <Badge tone="neutral">v{reconstruccionResultado._meta.version}</Badge>
+                      <span className="text-xs text-ink-tertiary">
+                        {new Date(reconstruccionResultado._meta.recordedAt).toLocaleString('es-BO')}
+                      </span>
+                      <Badge tone={reconstruccionResultado._meta.integridadVerificada ? 'brand' : 'danger'}>
+                        {reconstruccionResultado._meta.integridadVerificada
+                          ? 'Integridad verificada'
+                          : 'Integridad comprometida'}
+                      </Badge>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3 text-sm md:grid-cols-4">
+                      <div>
+                        <p className="text-[11px] text-ink-tertiary">Descripción</p>
+                        <p className="text-ink">{reconstruccionResultado.descripcion}</p>
+                      </div>
+                      <div>
+                        <p className="text-[11px] text-ink-tertiary">Ubicación</p>
+                        <p className="text-ink">{reconstruccionResultado.ubicacion}</p>
+                      </div>
+                      <div>
+                        <p className="text-[11px] text-ink-tertiary">Estado</p>
+                        <p className="text-ink">{reconstruccionResultado.estado}</p>
+                      </div>
+                      <div>
+                        <p className="text-[11px] text-ink-tertiary">Valor</p>
+                        <p className="font-mono text-ink">
+                          Bs. {Number(reconstruccionResultado.valor).toFixed(2)}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </Panel>
+      )}
+
       {loading ? (
         <Panel className="p-12 text-center text-sm text-ink-tertiary">Cargando catálogo…</Panel>
       ) : error ? (
@@ -470,14 +712,19 @@ function ActivosContent() {
                   </div>
                 </Td>
                 <Td className="text-center">
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => startEdit(item)}
-                    disabled={item.estado === 'BAJA'}
-                  >
-                    Editar
-                  </Button>
+                  <div className="flex items-center justify-center gap-1.5">
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => startEdit(item)}
+                      disabled={item.estado === 'BAJA'}
+                    >
+                      Editar
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={() => openHistorial(item)}>
+                      <History className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
                 </Td>
               </Tr>
             ))}

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Archive, LogOut, RefreshCw, Users } from 'lucide-react';
+import { Archive, LogOut, RefreshCw, Users, SlidersHorizontal } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/Button';
 import { Stamp } from '@/components/Stamp';
@@ -13,7 +13,10 @@ const NAV_ITEMS = [
   { href: '/sincronizacion', label: 'Sincronización', icon: RefreshCw },
 ];
 
-const ADMIN_NAV_ITEMS = [{ href: '/usuarios', label: 'Usuarios', icon: Users }];
+const ADMIN_NAV_ITEMS = [
+  { href: '/usuarios', label: 'Usuarios', icon: Users },
+  { href: '/reglas', label: 'Reglas de depreciación', icon: SlidersHorizontal },
+];
 
 export function Sidebar() {
   const pathname = usePathname();
