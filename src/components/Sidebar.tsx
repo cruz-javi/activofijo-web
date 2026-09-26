@@ -2,18 +2,30 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Archive, LogOut, RefreshCw, Users } from 'lucide-react';
+import { 
+  Archive, 
+  LogOut, 
+  RefreshCw, 
+  Users, 
+  ClipboardList, 
+  FileSignature, 
+  Scale, 
+  MapPin 
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/Button';
-import { Stamp } from '@/components/Stamp';
 import { useCurrentUser } from '@/lib/hooks/useCurrentUser';
 
 const NAV_ITEMS = [
-  { href: '/activos', label: 'Catálogo', icon: Archive },
+  { href: '/activos', label: 'Catálogo General', icon: Archive },
+  { href: '/asignaciones', label: 'Asignaciones', icon: ClipboardList },
+  { href: '/tramites', label: 'Trámites y Bajas', icon: FileSignature },
+  { href: '/inspecciones', label: 'Inspecciones', icon: MapPin },
+  { href: '/normativa', label: 'Normativa', icon: Scale },
   { href: '/sincronizacion', label: 'Sincronización', icon: RefreshCw },
 ];
 
-const ADMIN_NAV_ITEMS = [{ href: '/usuarios', label: 'Usuarios', icon: Users }];
+const ADMIN_NAV_ITEMS = [{ href: '/usuarios', label: 'Usuarios y Accesos', icon: Users }];
 
 export function Sidebar() {
   const pathname = usePathname();
@@ -28,36 +40,38 @@ export function Sidebar() {
   };
 
   return (
-    <aside className="sticky top-0 flex h-screen w-60 shrink-0 flex-col border-r border-border bg-paper-raised">
-      <div className="flex items-center gap-2.5 border-b border-border px-5 py-4">
-        <Stamp rotate={-4} className="h-8 w-8 text-[10px]">
-          AF
-        </Stamp>
-        <div>
-          <p className="font-serif text-sm font-semibold leading-tight text-ink">UAGRM</p>
-          <p className="text-[11px] text-ink-tertiary">Activo Fijo</p>
+    <aside className="sticky top-0 flex h-screen w-64 shrink-0 flex-col border-r border-border bg-paper-raised">
+      <div className="flex flex-col items-center gap-3 border-b border-border px-5 py-6">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-md bg-brand text-white font-bold font-serif shadow-sm">
+            AF
+          </div>
+          <div>
+            <p className="font-serif text-sm font-bold leading-tight text-ink tracking-wide">UAGRM</p>
+            <p className="text-[11px] font-semibold text-ink-tertiary tracking-wide uppercase mt-0.5">Activo Fijo</p>
+          </div>
         </div>
       </div>
 
-      <nav className="flex-1 overflow-y-auto px-3 py-4">
-        <p className="px-2.5 pb-2 text-[11px] font-medium uppercase tracking-wider text-ink-muted">
-          Patrimonio
+      <nav className="flex-1 overflow-y-auto px-3 py-5">
+        <p className="px-3 pb-3 text-[10px] font-bold uppercase tracking-widest text-ink-muted">
+          Módulos del Sistema
         </p>
-        <ul className="flex flex-col gap-0.5">
+        <ul className="flex flex-col gap-1">
           {navItems.map((item) => {
-            const active = pathname === item.href;
+            const active = pathname.startsWith(item.href);
             return (
               <li key={item.href}>
                 <Link
                   href={item.href}
                   className={cn(
-                    'flex items-center gap-2.5 rounded-sm px-2.5 py-2 text-sm transition-colors',
+                    'flex items-center gap-3 rounded-md px-3 py-2.5 text-sm transition-all duration-200',
                     active
-                      ? 'bg-brand-surface font-medium text-brand-strong'
-                      : 'text-ink-secondary hover:bg-border-soft hover:text-ink',
+                      ? 'bg-brand text-white shadow-sm font-medium'
+                      : 'text-ink-secondary hover:bg-border-soft hover:text-ink font-medium',
                   )}
                 >
-                  <item.icon className="h-4 w-4" />
+                  <item.icon className={cn("h-4 w-4", active ? "text-white" : "text-ink-tertiary")} />
                   {item.label}
                 </Link>
               </li>
@@ -66,9 +80,13 @@ export function Sidebar() {
         </ul>
       </nav>
 
-      <div className="border-t border-border p-3">
-        <Button variant="ghost" size="sm" className="w-full justify-start" onClick={handleLogout}>
-          <LogOut className="h-4 w-4" />
+      <div className="border-t border-border p-4 bg-paper">
+        <Button 
+          variant="ghost" 
+          className="w-full justify-start text-ink-secondary hover:text-brand hover:bg-brand-surface transition-colors" 
+          onClick={handleLogout}
+        >
+          <LogOut className="h-4 w-4 mr-2" />
           Cerrar sesión
         </Button>
       </div>
