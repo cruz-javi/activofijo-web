@@ -34,6 +34,13 @@
   --color-danger: #B91C1C;
   --color-danger-surface: #FEF2F2;
 
+  /* Identidad Secundaria (Azul Marino / Noche UAGRM) */
+  --color-brand-navy: #0F172A;
+  --color-brand-navy-strong: #0A101D;
+  --color-brand-navy-surface: #F1F5F9;
+  --color-brand-blue: #1D4ED8;
+  --color-brand-blue-surface: #EFF6FF;
+
   /* Bordes */
   --color-border: #CBD5E1;
   --color-border-soft: #E2E8F0;
@@ -41,6 +48,9 @@
   --radius-sm: 4px;
   --radius-md: 6px;
   --radius-lg: 8px;
+  --radius-xl: 12px;
+  --radius-2xl: 16px;
+  --radius-3xl: 24px;
 }
 
 :root {
