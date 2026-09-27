@@ -33,7 +33,7 @@ export default function LoginPage() {
         throw new Error(data.message || 'Error al iniciar sesión');
       }
 
-      router.push('/activos');
+      router.push('/dashboard');
       router.refresh();
     } catch (err: any) {
       setError(err.message);

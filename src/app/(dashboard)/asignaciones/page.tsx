@@ -115,10 +115,10 @@ function AsignacionesContent() {
                 <Badge
                   tone={
                     acta.estado === 'VIGENTE'
-                      ? 'positive'
+                      ? 'brand'
                       : acta.estado === 'DEVUELTO'
                       ? 'neutral'
-                      : 'warning'
+                      : 'accent'
                   }
                 >
                   {acta.estado}
