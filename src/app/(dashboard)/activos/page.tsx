@@ -35,6 +35,8 @@ import { Select } from '@/components/ui/Select';
 import { Td, TBody, TableCard, Th, THead, Tr } from '@/components/ui/Table';
 import { useToast } from '@/components/ui/Toast';
 import { ESTADO_ACTIVO_TONE } from '@/lib/estado';
+import { ModalReporteParametrizado } from '@/components/export/ModalReporteParametrizado';
+import { ReportColumn, ReportFilterCriterion } from '@/lib/export/reportTypes';
 
 interface CustodioInfo {
   codigo?: string | null;
@@ -42,6 +44,39 @@ interface CustodioInfo {
   cargo?: string | null;
   ci?: string | null;
 }
+
+export const REPORT_COLUMNS_ACTIVOS: ReportColumn<ActivoItem>[] = [
+  { key: 'codigo', label: 'Código', defaultVisible: true, width: '13%' },
+  { key: 'descripcion', label: 'Descripción del Bien', defaultVisible: true, width: '25%' },
+  { key: 'grupoContable', label: 'Grupo Contable', defaultVisible: true, width: '15%' },
+  { key: 'ubicacion', label: 'Ubicación / Dependencia', defaultVisible: true, width: '15%' },
+  { 
+    key: 'custodio', 
+    label: 'Responsable / Custodio', 
+    defaultVisible: true, 
+    width: '15%',
+    format: (c) => c?.nombreCompleto || 'Sin Asignar' 
+  },
+  { key: 'estado', label: 'Estado', defaultVisible: true, align: 'center', width: '8%' },
+  { 
+    key: 'valor', 
+    label: 'Valor (Bs.)', 
+    defaultVisible: true, 
+    align: 'right', 
+    isNumeric: true, 
+    width: '9%' 
+  },
+  { key: 'marca', label: 'Marca', defaultVisible: false },
+  { key: 'modelo', label: 'Modelo', defaultVisible: false },
+  { key: 'nroSerie', label: 'Nro. de Serie', defaultVisible: false },
+  { key: 'condicion', label: 'Condición', defaultVisible: false },
+  { 
+    key: 'fechaAdquisicion', 
+    label: 'Fecha Incorporación', 
+    defaultVisible: false,
+    format: (f) => f ? f.split('T')[0] : '-' 
+  },
+];
 
 interface ActivoItem {
   id: string;
@@ -133,8 +168,6 @@ function ActivosContent() {
   // Modales
   const [selectedActivo, setSelectedActivo] = useState<ActivoItem | null>(null);
   const [showExportModal, setShowExportModal] = useState(false);
-  const [exportScope, setExportScope] = useState<'page' | 'all'>('page');
-  const [exportFormat, setExportFormat] = useState<'csv' | 'pdf' | 'excel'>('csv');
 
   // Carga inicial de metadatos dinámicos
   useEffect(() => {
@@ -271,90 +304,32 @@ function ActivosContent() {
     window.print();
   };
 
-  // Exportación a CSV
-  const handleExportCSV = async () => {
-    let itemsToExport = activos;
+  // Consulta de lote completo filtrado para exportación parametrizada (CU06)
+  const fetchAllFilteredActivos = async (): Promise<ActivoItem[]> => {
+    const params = new URLSearchParams();
+    if (search.trim()) params.set('search', search.trim());
+    if (codigoFilter.trim()) params.set('codigo', codigoFilter.trim());
+    if (unidadFilter) params.set('unidad', unidadFilter);
+    if (custodioFilter.trim()) params.set('custodio', custodioFilter.trim());
+    if (estadoFilter) params.set('estado', estadoFilter);
+    if (grupoFilter) params.set('grupo', grupoFilter);
+    params.set('limit', '5000');
+    params.set('offset', '0');
 
-    if (exportScope === 'all' && total > activos.length) {
-      try {
-        toast.show('Consultando registros para exportación completa...');
-        const params = buildQuery();
-        params.set('limit', '100'); // Exportar lote ampliado
-        params.set('offset', '0');
-        const res = await fetch(`/api/proxy/activos?${params.toString()}`);
-        if (res.ok) {
-          const json = await res.json();
-          itemsToExport = json.data || activos;
-        }
-      } catch (err) {
-        console.error('Error al obtener todos los activos para exportar:', err);
-      }
-    }
-
-    const headers = [
-      'Código Patrimonial',
-      'Descripción',
-      'Grupo Contable',
-      'Unidad Organizacional',
-      'Ubicación Física',
-      'Custodio Nombre',
-      'Custodio Cargo',
-      'Custodio CI',
-      'Custodio Código',
-      'Marca',
-      'Modelo',
-      'Nro Serie',
-      'Estado',
-      'Condición',
-      'Valor (Bs.)',
-      'Fecha Adquisición',
-    ];
-
-    const rows = itemsToExport.map((a) => [
-      `"${a.codigo || ''}"`,
-      `"${(a.descripcion || '').replace(/"/g, '""')}"`,
-      `"${a.grupoContable || ''}"`,
-      `"${(a.unidad || '').replace(/"/g, '""')}"`,
-      `"${(a.ubicacion || '').replace(/"/g, '""')}"`,
-      `"${(a.custodio?.nombreCompleto || 'Sin Asignar').replace(/"/g, '""')}"`,
-      `"${(a.custodio?.cargo || '').replace(/"/g, '""')}"`,
-      `"${a.custodio?.ci || ''}"`,
-      `"${a.custodio?.codigo || ''}"`,
-      `"${a.marca || ''}"`,
-      `"${a.modelo || ''}"`,
-      `"${a.nroSerie || ''}"`,
-      `"${a.estado || ''}"`,
-      `"${a.condicion || ''}"`,
-      `"${Number(a.valor || 0).toFixed(2)}"`,
-      `"${a.fechaAdquisicion ? a.fechaAdquisicion.split('T')[0] : ''}"`,
-    ]);
-
-    const csvContent = '\uFEFF' + [headers.join(','), ...rows.map((r) => r.join(','))].join('\r\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.setAttribute('href', url);
-    link.setAttribute('download', `catalogo_activos_uagrm_${new Date().toISOString().slice(0, 10)}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-
-    setShowExportModal(false);
-    toast.show('Catálogo exportado exitosamente a CSV.');
+    const res = await fetch(`/api/proxy/activos?${params.toString()}`);
+    if (!res.ok) throw new Error('Error al consultar catálogo de activos');
+    const json = await res.json();
+    return json.data || [];
   };
 
-  const handleExportConfirm = () => {
-    if (exportFormat === 'csv') {
-      handleExportCSV();
-    } else {
-      setShowExportModal(false);
-      toast.show(
-        `Generación oficial en ${exportFormat.toUpperCase()} programada. Se emitirá el reporte foliado institucional.`,
-      );
-      setTimeout(handlePrint, 400);
-    }
-  };
+  const reportFilters: ReportFilterCriterion[] = useMemo(() => [
+    { label: 'Búsqueda', value: search.trim() },
+    { label: 'Código', value: codigoFilter.trim() },
+    { label: 'Unidad', value: unidadFilter },
+    { label: 'Custodio', value: custodioFilter.trim() },
+    { label: 'Estado', value: estadoFilter },
+    { label: 'Grupo Contable', value: grupoFilter },
+  ], [search, codigoFilter, unidadFilter, custodioFilter, estadoFilter, grupoFilter]);
 
   return (
     <>
@@ -999,159 +974,22 @@ function ActivosContent() {
         </div>
       )}
 
-      {/* Modal de Exportación (CU02) */}
-      {showExportModal && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200"
-          role="dialog"
-          aria-modal="true"
-          onClick={() => setShowExportModal(false)}
-        >
-          <div
-            className="relative w-full max-w-lg bg-paper-raised border border-border-soft rounded-2xl shadow-2xl overflow-hidden p-6 sm:p-7"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button
-              onClick={() => setShowExportModal(false)}
-              type="button"
-              className="absolute top-4 right-4 h-8 w-8 rounded-full flex items-center justify-center text-ink-tertiary hover:text-ink hover:bg-paper transition-colors cursor-pointer"
-            >
-              <X className="h-4 w-4" />
-            </button>
-
-            <div className="flex items-center gap-3 mb-4">
-              <div className="h-10 w-10 rounded-xl bg-brand-surface text-brand flex items-center justify-center shrink-0">
-                <Download className="h-5 w-5" />
-              </div>
-              <div>
-                <h3 className="font-bold text-ink text-base font-serif">
-                  Exportar Catálogo de Activos
-                </h3>
-                <p className="text-xs text-ink-tertiary">
-                  Generación de reportes institucionales para auditoría y control
-                </p>
-              </div>
-            </div>
-
-            <div className="space-y-4 text-xs text-ink-secondary leading-relaxed mb-6">
-              {/* Selector de Alcance */}
-              <div>
-                <label className="block text-[11px] font-bold text-ink uppercase tracking-wider mb-2">
-                  Alcance de la Exportación
-                </label>
-                <div className="grid grid-cols-2 gap-2.5">
-                  <button
-                    type="button"
-                    onClick={() => setExportScope('page')}
-                    className={`p-3 rounded-xl border text-left cursor-pointer transition-all ${
-                      exportScope === 'page'
-                        ? 'border-brand bg-brand-surface text-ink'
-                        : 'border-border-soft bg-paper hover:bg-border-soft/50 text-ink-secondary'
-                    }`}
-                  >
-                    <div className="font-bold text-xs text-ink">Página actual</div>
-                    <div className="text-[11px] text-ink-tertiary mt-0.5">
-                      {activos.length} activos en pantalla
-                    </div>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setExportScope('all')}
-                    className={`p-3 rounded-xl border text-left cursor-pointer transition-all ${
-                      exportScope === 'all'
-                        ? 'border-brand bg-brand-surface text-ink'
-                        : 'border-border-soft bg-paper hover:bg-border-soft/50 text-ink-secondary'
-                    }`}
-                  >
-                    <div className="font-bold text-xs text-ink">Total filtrado</div>
-                    <div className="text-[11px] text-ink-tertiary mt-0.5">
-                      {total} activos coincidentes
-                    </div>
-                  </button>
-                </div>
-              </div>
-
-              {/* Selector de Formato */}
-              <div>
-                <label className="block text-[11px] font-bold text-ink uppercase tracking-wider mb-2">
-                  Formato de Salida
-                </label>
-                <div className="grid grid-cols-3 gap-2.5">
-                  <button
-                    type="button"
-                    onClick={() => setExportFormat('csv')}
-                    className={`p-3 rounded-xl border flex flex-col items-center justify-center gap-1.5 cursor-pointer transition-all ${
-                      exportFormat === 'csv'
-                        ? 'border-brand bg-brand-surface text-brand font-bold'
-                        : 'border-border-soft bg-paper hover:bg-border-soft/50 text-ink-secondary'
-                    }`}
-                  >
-                    <FileSpreadsheet className="h-5 w-5" />
-                    <span className="text-xs">CSV / Excel</span>
-                    <span className="text-[9px] uppercase tracking-wider text-brand font-bold">
-                      Descarga Directa
-                    </span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setExportFormat('pdf')}
-                    className={`p-3 rounded-xl border flex flex-col items-center justify-center gap-1.5 cursor-pointer transition-all ${
-                      exportFormat === 'pdf'
-                        ? 'border-brand bg-brand-surface text-brand font-bold'
-                        : 'border-border-soft bg-paper hover:bg-border-soft/50 text-ink-secondary'
-                    }`}
-                  >
-                    <FileText className="h-5 w-5" />
-                    <span className="text-xs">PDF Oficial</span>
-                    <span className="text-[9px] uppercase tracking-wider text-ink-tertiary">
-                      Impresión
-                    </span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setExportFormat('excel')}
-                    className={`p-3 rounded-xl border flex flex-col items-center justify-center gap-1.5 cursor-pointer transition-all ${
-                      exportFormat === 'excel'
-                        ? 'border-brand bg-brand-surface text-brand font-bold'
-                        : 'border-border-soft bg-paper hover:bg-border-soft/50 text-ink-secondary'
-                    }`}
-                  >
-                    <FileSpreadsheet className="h-5 w-5" />
-                    <span className="text-xs">Excel (.xlsx)</span>
-                    <span className="text-[9px] uppercase tracking-wider text-ink-tertiary">
-                      Avanzado
-                    </span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Resumen de Filtros Activos */}
-              <div className="p-3 bg-paper rounded-xl border border-border-soft space-y-1 font-mono text-[11px]">
-                <div className="font-bold text-ink mb-1">Criterios de exportación:</div>
-                <div>• Búsqueda: <span className="text-ink">{search.trim() || 'Todas'}</span></div>
-                <div>• Código: <span className="text-ink">{codigoFilter.trim() || 'Todos'}</span></div>
-                <div>• Unidad: <span className="text-ink">{unidadFilter || 'Todas'}</span></div>
-                <div>• Custodio: <span className="text-ink">{custodioFilter.trim() || 'Todos'}</span></div>
-                <div>• Estado: <span className="text-ink">{estadoFilter || 'Todos'}</span></div>
-                <div>• Grupo: <span className="text-ink">{grupoFilter || 'Todos'}</span></div>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-border-soft">
-              <Button variant="secondary" onClick={() => setShowExportModal(false)}>
-                Cancelar
-              </Button>
-              <Button onClick={handleExportConfirm} className="inline-flex items-center gap-2 cursor-pointer">
-                <Download className="h-3.5 w-3.5" />
-                <span>Confirmar Exportación</span>
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Modal Parametrizado de Reportes y Exportación (CU06) */}
+      <ModalReporteParametrizado<ActivoItem>
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        title="Exportar Catálogo de Activos"
+        description="Generación de reportes institucionales para auditoría y control patrimonial"
+        filenamePrefix="catalogo_activos_uagrm"
+        defaultTitle="REPORTE DE ASIGNACIONES DE BIENES PATRIMONIALES"
+        defaultSubtitle="DEPARTAMENTO DE ACTIVO FIJO - CAMPUS UNIVERSITARIO"
+        columns={REPORT_COLUMNS_ACTIVOS}
+        pageData={activos}
+        totalFilteredCount={total}
+        fetchAllFilteredData={fetchAllFilteredActivos}
+        filters={reportFilters}
+        userLabel="Operador Patrimonial"
+      />
     </>
   );
 }

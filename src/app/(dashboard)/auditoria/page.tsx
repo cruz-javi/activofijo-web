@@ -30,6 +30,62 @@ import { Input } from '@/components/ui/Input';
 import { Pagination } from '@/components/ui/Pagination';
 import { Td, TBody, TableCard, Th, THead, Tr } from '@/components/ui/Table';
 import { useCurrentUser } from '@/lib/hooks/useCurrentUser';
+import { ModalReporteParametrizado } from '@/components/export/ModalReporteParametrizado';
+import { ReportColumn, ReportFilterCriterion } from '@/lib/export/reportTypes';
+
+export const REPORT_COLUMNS_AUDITORIA: ReportColumn<AuditItem>[] = [
+  { 
+    key: 'creadoEn', 
+    label: 'Fecha y Hora (UTC-4)', 
+    defaultVisible: true,
+    width: '18%',
+    format: (val) => val ? new Date(val).toLocaleString('es-BO') : '-'
+  },
+  { 
+    key: 'emailUsuario', 
+    label: 'Usuario / Correo', 
+    defaultVisible: true,
+    width: '20%',
+    format: (val) => val || 'Sistema'
+  },
+  { 
+    key: 'accion', 
+    label: 'Acción Ejecutada', 
+    defaultVisible: true,
+    width: '18%'
+  },
+  { 
+    key: 'modulo', 
+    label: 'Módulo', 
+    defaultVisible: true,
+    width: '12%'
+  },
+  { 
+    key: 'entidadId', 
+    label: 'Activo / Entidad', 
+    defaultVisible: true,
+    width: '14%',
+    format: (val) => val || '-'
+  },
+  { 
+    key: 'resultado', 
+    label: 'Resultado', 
+    defaultVisible: true,
+    align: 'center',
+    width: '18%'
+  },
+  { 
+    key: 'ipOrigen', 
+    label: 'Dirección IP', 
+    defaultVisible: false,
+    align: 'center'
+  },
+  { 
+    key: 'userAgent', 
+    label: 'Navegador / Cliente', 
+    defaultVisible: false
+  },
+];
 
 interface AuditItem {
   id: string;
@@ -151,6 +207,29 @@ export default function BitacoraPage() {
   const handlePrint = () => {
     window.print();
   };
+
+  // Consulta de lote completo filtrado para exportación parametrizada (CU06)
+  const fetchAllFilteredAuditoria = async (): Promise<AuditItem[]> => {
+    const params = new URLSearchParams();
+    if (search.trim()) params.set('search', search.trim());
+    if (accion !== 'TODOS') params.set('accion', accion);
+    if (modulo !== 'TODOS') params.set('modulo', modulo);
+    if (resultado !== 'TODOS') params.set('resultado', resultado);
+    params.set('limit', '5000');
+    params.set('offset', '0');
+
+    const res = await fetch(`/api/proxy/auditoria?${params.toString()}`);
+    if (!res.ok) throw new Error('Error al consultar bitácora forense');
+    const json = await res.json();
+    return json.items || [];
+  };
+
+  const reportFilters: ReportFilterCriterion[] = [
+    { label: 'Búsqueda', value: search.trim() },
+    { label: 'Acción', value: accion },
+    { label: 'Módulo', value: modulo },
+    { label: 'Resultado', value: resultado },
+  ];
 
   if (!loadingUser && !isAdmin) {
     return (
@@ -514,73 +593,22 @@ export default function BitacoraPage() {
         </div>
       )}
 
-      {/* Modal de Impresión / Exportación */}
-      {showExportModal && (
-        <div 
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200"
-          role="dialog"
-          aria-modal="true"
-          onClick={() => setShowExportModal(false)}
-        >
-          <div 
-            className="relative w-full max-w-md bg-paper-raised border border-border-soft rounded-2xl shadow-xl overflow-hidden p-6 sm:p-7"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button
-              onClick={() => setShowExportModal(false)}
-              type="button"
-              className="absolute top-4 right-4 h-8 w-8 rounded-full flex items-center justify-center text-ink-tertiary hover:text-ink hover:bg-paper transition-colors cursor-pointer"
-            >
-              <X className="h-4 w-4" />
-            </button>
-
-            <div className="flex items-center gap-3 mb-4">
-              <div className="h-10 w-10 rounded-xl bg-brand-surface text-brand flex items-center justify-center shrink-0">
-                <Printer className="h-5 w-5" />
-              </div>
-              <div>
-                <h3 className="font-bold text-ink text-base font-serif">
-                  Imprimir / Exportar Bitácora
-                </h3>
-                <p className="text-xs text-ink-tertiary">
-                  Reporte de auditoría forense institucional
-                </p>
-              </div>
-            </div>
-
-            <div className="space-y-3 text-xs text-ink-secondary leading-relaxed mb-6">
-              <p>
-                Se generará el reporte oficial con los <strong className="text-ink font-semibold">{items.length}</strong> registros actualmente filtrados en pantalla.
-              </p>
-              <div className="p-3 bg-paper rounded-xl border border-border-soft space-y-1.5 font-mono text-[11px]">
-                <div>• Filtro Acción: <span className="font-bold text-ink">{accion}</span></div>
-                <div>• Filtro Módulo: <span className="font-bold text-ink">{modulo}</span></div>
-                <div>• Filtro Resultado: <span className="font-bold text-ink">{resultado}</span></div>
-                {search.trim() && <div>• Criterio: <span className="font-bold text-ink">{search.trim()}</span></div>}
-              </div>
-              <p className="text-[11px] text-ink-tertiary">
-                Haga clic en <strong>Imprimir Formato Oficial</strong> para abrir el diálogo de impresión del sistema o guardar como PDF institucional.
-              </p>
-            </div>
-
-            <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-border-soft">
-              <Button variant="secondary" onClick={() => setShowExportModal(false)}>
-                Cancelar
-              </Button>
-              <Button 
-                onClick={() => {
-                  setShowExportModal(false);
-                  setTimeout(handlePrint, 300);
-                }}
-                className="inline-flex items-center gap-2 cursor-pointer"
-              >
-                <Printer className="h-3.5 w-3.5" />
-                <span>Imprimir Formato Oficial</span>
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Modal Parametrizado de Reportes y Exportación (CU06) */}
+      <ModalReporteParametrizado<AuditItem>
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        title="Exportar Bitácora del Sistema"
+        description="Generación de reportes forenses y eventos de seguridad institucional"
+        filenamePrefix="bitacora_auditoria_uagrm"
+        defaultTitle="REPORTE DE BITÁCORA Y AUDITORÍA FORENSE"
+        defaultSubtitle="CONTROL DE SEGURIDAD Y TRAZABILIDAD - U.A.G.R.M."
+        columns={REPORT_COLUMNS_AUDITORIA}
+        pageData={items}
+        totalFilteredCount={total}
+        fetchAllFilteredData={fetchAllFilteredAuditoria}
+        filters={reportFilters}
+        userLabel={currentUser?.email || 'Administrador'}
+      />
     </>
   );
 }
