@@ -14,9 +14,15 @@ importers:
       '@tanstack/react-table':
         specifier: ^8.21.2
         version: 8.21.3(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@types/jsbarcode':
+        specifier: ^3.11.4
+        version: 3.11.4
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
+      jsbarcode:
+        specifier: ^3.12.3
+        version: 3.12.3
       lucide-react:
         specifier: ^1.16.0
         version: 1.46.0(react@19.3.0)
@@ -414,6 +420,9 @@ packages:
     resolution: {integrity: sha512-ldZXEhOBb8Is7xLs01fR3YEc3DERiz5silj8tnGkFZytt1abEvl/GhUmCE0PMLaMPTa3Jk4HbKmRlHmu+gCftg==}
     engines: {node: '>=12'}
 
+  '@types/jsbarcode@3.11.4':
+    resolution: {integrity: sha512-VBcpTAnEMH0Gbh8JpV14CgOtJjCYjsvR2FoDRyoYPE0gUxtApf8N4c+HKEOyz/iiIZkMzqrzBA3XX7+KgKxxsA==}
+
   '@types/node@22.20.2':
     resolution: {integrity: sha512-xlvWf4Vs9n1PEVYwP1n4vvG07M6y8WgvJ2t0vbrWTmijsIHp1cS+uJ2kMIRdY3nHZK0nCYKrPeD171+SzF4/zw==}
 
@@ -511,6 +520,9 @@ packages:
   js-yaml@4.3.2:
     resolution: {integrity: sha512-SFNOvSJ+Dgf/9An904Yx+CgSlIPCkIpao4qo51lpee25TIRejdH3rhR4EZMGoNx3/TP3O+wzWuiTFl4sqbltzA==}
     hasBin: true
+
+  jsbarcode@3.12.3:
+    resolution: {integrity: sha512-CuHU9hC6dPsHF5oVFMo8NW76uQVjH4L22CsP4hW+dNnGywJHC/B0ThA1CTDVLnxKLrrpYdicBLnd2xsgTfRnvg==}
 
   json-schema-traverse@1.0.0:
     resolution: {integrity: sha512-NM8/P9n3XjXhIZn1lLhkFaACTOURQXjWhV4BA/RnOv8xvgqtqpAX9IO4mRQxSx1Rlo4tqzeqb0sOlruaOy3dug==}
@@ -1026,6 +1038,10 @@ snapshots:
 
   '@tanstack/table-core@8.21.3': {}
 
+  '@types/jsbarcode@3.11.4':
+    dependencies:
+      '@types/node': 22.20.2
+
   '@types/node@22.20.2':
     dependencies:
       undici-types: 6.21.0
@@ -1099,6 +1115,8 @@ snapshots:
   js-yaml@4.3.2:
     dependencies:
       argparse: 2.0.1
+
+  jsbarcode@3.12.3: {}
 
   json-schema-traverse@1.0.0: {}
 

@@ -16,6 +16,7 @@ import {
   Shield, 
   KeyRound, 
   Fingerprint, 
+  Tag,
   X,
   LucideIcon 
 } from 'lucide-react';
@@ -56,6 +57,7 @@ const NAV_ITEMS: NavItem[] = [
     subItems: [
       { href: '/formularios/alta', label: 'Alta de Activos', icon: FilePlus, requiredPermiso: 'activos:crear' },
       { href: '/formularios/baja', label: 'Baja de Activos', icon: FileMinus, requiredPermiso: 'activos:baja' },
+      { href: '/etiquetas', label: 'Identificadores y Etiquetas', icon: Tag, requiredPermiso: 'activos:leer' },
     ]
   },
   {

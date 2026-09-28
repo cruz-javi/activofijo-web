@@ -110,6 +110,26 @@ function ActivosContent() {
   const [estadoFilter, setEstadoFilter] = useState(searchParams.get('estado') || '');
   const [grupoFilter, setGrupoFilter] = useState(searchParams.get('grupo') || '');
 
+  // Selección múltiple para etiquetas en lote (CU05)
+  const [selectedCodigos, setSelectedCodigos] = useState<Set<string>>(new Set());
+
+  const toggleSelectCodigo = (cod: string) => {
+    setSelectedCodigos((prev) => {
+      const next = new Set(prev);
+      if (next.has(cod)) next.delete(cod);
+      else next.add(cod);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedCodigos.size === activos.length) {
+      setSelectedCodigos(new Set());
+    } else {
+      setSelectedCodigos(new Set(activos.map((a) => a.codigo)));
+    }
+  };
+
   // Modales
   const [selectedActivo, setSelectedActivo] = useState<ActivoItem | null>(null);
   const [showExportModal, setShowExportModal] = useState(false);
@@ -573,17 +593,41 @@ function ActivosContent() {
           }
         >
           <THead>
-                <Th className="w-36">Código</Th>
-                <Th>Descripción / Especificación</Th>
-                <Th>Unidad / Ubicación</Th>
-                <Th>Custodio Responsable</Th>
-                <Th className="text-center w-28">Estado</Th>
-                <Th className="text-right w-32">Valor (Bs.)</Th>
-                <Th className="text-center w-24">Acción</Th>
-              </THead>
+            <Th className="w-10 text-center">
+              <input
+                type="checkbox"
+                checked={activos.length > 0 && selectedCodigos.size === activos.length}
+                onChange={toggleSelectAll}
+                className="rounded border-border text-brand focus:ring-brand cursor-pointer"
+                title="Seleccionar todos los activos visibles"
+              />
+            </Th>
+            <Th className="w-36">Código</Th>
+            <Th>Descripción / Especificación</Th>
+            <Th>Unidad / Ubicación</Th>
+            <Th>Custodio Responsable</Th>
+            <Th className="text-center w-28">Estado</Th>
+            <Th className="text-right w-32">Valor (Bs.)</Th>
+            <Th className="text-center w-28">Acciones</Th>
+          </THead>
               <TBody>
                 {activos.map((item) => (
-                  <Tr key={item.id} className="hover:bg-paper-raised/60 transition-colors">
+                  <Tr 
+                    key={item.id} 
+                    className={`hover:bg-paper-raised/60 transition-colors ${
+                      selectedCodigos.has(item.codigo) ? 'bg-brand/5' : ''
+                    }`}
+                  >
+                    {/* Checkbox de selección para etiquetas */}
+                    <Td className="text-center">
+                      <input
+                        type="checkbox"
+                        checked={selectedCodigos.has(item.codigo)}
+                        onChange={() => toggleSelectCodigo(item.codigo)}
+                        className="rounded border-border text-brand focus:ring-brand cursor-pointer"
+                      />
+                    </Td>
+
                     {/* Código con AssetTag */}
                     <Td className="whitespace-nowrap font-mono">
                       <AssetTag code={item.codigo} />
@@ -659,23 +703,62 @@ function ActivosContent() {
                       {formatBs(item.valor)}
                     </Td>
 
-                    {/* Botón Ver Más */}
+                    {/* Botones de Acción */}
                     <Td className="text-center whitespace-nowrap">
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => setSelectedActivo(item)}
-                        className="inline-flex items-center gap-1.5 cursor-pointer px-2.5 py-1 text-xs"
-                        title="Ver ficha técnica completa del activo"
-                      >
-                        <Eye className="h-3.5 w-3.5 text-brand" />
-                        <span>Ver</span>
-                      </Button>
+                      <div className="flex items-center justify-center gap-1.5">
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => setSelectedActivo(item)}
+                          className="inline-flex items-center gap-1.5 cursor-pointer px-2.5 py-1 text-xs"
+                          title="Ver ficha técnica completa del activo"
+                        >
+                          <Eye className="h-3.5 w-3.5 text-brand" />
+                          <span>Ver</span>
+                        </Button>
+
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => router.push(`/etiquetas?reponer=${encodeURIComponent(item.codigo)}`)}
+                          className="inline-flex items-center gap-1 cursor-pointer px-2 py-1 text-xs"
+                          title="Reponer etiqueta de este activo"
+                        >
+                          <Tag className="h-3.5 w-3.5 text-ink-secondary" />
+                        </Button>
+                      </div>
                     </Td>
                   </Tr>
                 ))}
               </TBody>
         </TableCard>
+      )}
+
+      {/* Barra Flotante de Acciones en Lote (CU05) */}
+      {selectedCodigos.size > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-neutral-900 text-white px-5 py-3 rounded-full shadow-2xl flex items-center gap-4 animate-in slide-in-from-bottom-5 duration-200">
+          <span className="text-xs font-semibold">
+            {selectedCodigos.size} {selectedCodigos.size === 1 ? 'activo seleccionado' : 'activos seleccionados'}
+          </span>
+          <div className="h-4 w-px bg-white/20" />
+          <Button
+            type="button"
+            variant="primary"
+            size="sm"
+            onClick={() => router.push(`/etiquetas?codigos=${Array.from(selectedCodigos).join(',')}`)}
+            className="gap-1.5 text-xs shadow-none"
+          >
+            <Printer className="h-3.5 w-3.5" />
+            Imprimir {selectedCodigos.size} Etiquetas
+          </Button>
+          <button
+            type="button"
+            onClick={() => setSelectedCodigos(new Set())}
+            className="text-xs text-white/70 hover:text-white underline cursor-pointer"
+          >
+            Cancelar
+          </button>
+        </div>
       )}
 
       {/* Modal de Detalle: Ficha Técnica Patrimonial (CU02) */}
@@ -879,16 +962,31 @@ function ActivosContent() {
 
             {/* Footer con Acciones */}
             <div className="p-4 sm:p-5 border-t border-border-soft bg-paper flex items-center justify-between gap-3">
-              <Button
-                variant="secondary"
-                onClick={() => {
-                  window.print();
-                }}
-                className="inline-flex items-center gap-2 cursor-pointer"
-              >
-                <Printer className="h-4 w-4" />
-                <span>Imprimir Ficha</span>
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    window.print();
+                  }}
+                  className="inline-flex items-center gap-2 cursor-pointer"
+                >
+                  <Printer className="h-4 w-4" />
+                  <span>Imprimir Ficha</span>
+                </Button>
+
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    if (selectedActivo) {
+                      router.push(`/etiquetas?reponer=${encodeURIComponent(selectedActivo.codigo)}`);
+                    }
+                  }}
+                  className="inline-flex items-center gap-2 cursor-pointer"
+                >
+                  <Tag className="h-4 w-4 text-brand" />
+                  <span>Reponer Etiqueta</span>
+                </Button>
+              </div>
 
               <Button
                 onClick={() => setSelectedActivo(null)}
