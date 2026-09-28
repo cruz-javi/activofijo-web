@@ -10,8 +10,13 @@ async function handleProxy(req: NextRequest, { params }: { params: Promise<{ pat
   const url = new URL(req.url);
   const forwardUrl = `${coreUrl}${targetPath}${url.search}`;
 
+  const clientIp = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || '127.0.0.1';
+  const userAgent = req.headers.get('user-agent') || 'Browser';
+
   const headers: Record<string, string> = {
     'Content-Type': req.headers.get('content-type') || 'application/json',
+    'x-forwarded-for': clientIp,
+    'user-agent': userAgent,
   };
 
   if (accessToken) {

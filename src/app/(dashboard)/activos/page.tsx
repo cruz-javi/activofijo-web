@@ -93,7 +93,7 @@ function ActivosContent() {
       const params = buildQuery();
       const res = await fetch(`/api/proxy/activos?${params.toString()}`);
       if (res.status === 401) {
-        router.push('/login');
+        router.push('/?login=true');
         return;
       }
       const data = await res.json();

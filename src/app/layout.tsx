@@ -34,9 +34,10 @@ export default function RootLayout({
   return (
     <html
       lang="es"
+      suppressHydrationWarning
       className={`${publicSans.variable} ${sourceSerif.variable} ${plexMono.variable}`}
     >
-      <body className="min-h-screen bg-paper font-sans text-ink antialiased">
+      <body className="min-h-screen bg-paper font-sans text-ink antialiased" suppressHydrationWarning>
         {children}
       </body>
     </html>

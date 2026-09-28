@@ -1,5 +1,20 @@
+'use client';
+
+import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useSearchParams } from 'next/navigation';
+import { LoginModal } from '@/components/auth/LoginModal';
+
+function LoginAutoOpener({ onOpen }: { onOpen: () => void }) {
+  const searchParams = useSearchParams();
+  useEffect(() => {
+    if (searchParams.get('login') === 'true' || searchParams.get('login') === '1') {
+      onOpen();
+    }
+  }, [searchParams, onOpen]);
+  return null;
+}
 import { 
   ArrowRight, 
   ShieldCheck, 
@@ -149,6 +164,8 @@ const NAV_LINKS = [
 ];
 
 export default function LandingPage() {
+  const [loginModalOpen, setLoginModalOpen] = useState(false);
+
   return (
     <div className="min-h-screen bg-paper flex flex-col font-sans selection:bg-brand-surface selection:text-brand scroll-smooth">
       <header className="sticky top-0 z-50 bg-paper-raised/95 backdrop-blur-md border-b border-border-soft transition-colors duration-200">
@@ -191,13 +208,14 @@ export default function LandingPage() {
               ))}
             </nav>
 
-            <Link 
-              href="/login" 
-              className="inline-flex items-center gap-2 bg-brand text-white px-4 sm:px-5 py-2.5 rounded-lg text-xs sm:text-sm font-semibold hover:bg-brand-strong transition-all duration-200 shadow-xs hover:shadow-md active:scale-95"
+            <button 
+              type="button"
+              onClick={() => setLoginModalOpen(true)}
+              className="inline-flex items-center gap-2 bg-brand text-white px-4 sm:px-5 py-2.5 rounded-lg text-xs sm:text-sm font-semibold hover:bg-brand-strong transition-all duration-200 shadow-xs hover:shadow-md active:scale-95 cursor-pointer"
             >
               Iniciar Sesión
               <ArrowRight className="h-3.5 w-3.5 transition-transform duration-200 group-hover:translate-x-0.5" />
-            </Link>
+            </button>
           </div>
         </div>
       </header>
@@ -221,13 +239,14 @@ export default function LandingPage() {
             </p>
 
             <div className="flex flex-col items-center justify-center gap-3">
-              <Link 
-                href="/login" 
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 bg-brand text-white px-8 py-3.5 rounded-xl text-sm sm:text-base font-semibold hover:bg-brand-strong transition-all duration-200 shadow-sm hover:shadow-md hover:-translate-y-0.5 active:scale-95"
+              <button 
+                type="button"
+                onClick={() => setLoginModalOpen(true)}
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 bg-brand text-white px-8 py-3.5 rounded-xl text-sm sm:text-base font-semibold hover:bg-brand-strong transition-all duration-200 shadow-sm hover:shadow-md hover:-translate-y-0.5 active:scale-95 cursor-pointer"
               >
                 Iniciar Sesión
                 <ArrowRight className="h-4 w-4" />
-              </Link>
+              </button>
               <span className="text-xs text-ink-tertiary">
                 Acceso exclusivo para funcionarios y custodios autorizados
               </span>
@@ -471,9 +490,13 @@ export default function LandingPage() {
               </h4>
               <ul className="space-y-2.5 text-xs text-ink-secondary">
                 <li>
-                  <Link href="/login" className="hover:text-brand font-semibold transition-colors duration-150">
+                  <button 
+                    type="button"
+                    onClick={() => setLoginModalOpen(true)}
+                    className="hover:text-brand font-semibold transition-colors duration-150 text-left cursor-pointer"
+                  >
                     Iniciar Sesión
-                  </Link>
+                  </button>
                 </li>
                 {NAV_LINKS.map((link) => (
                   <li key={link.href}>
@@ -526,6 +549,15 @@ export default function LandingPage() {
           </div>
         </div>
       </footer>
+
+      <Suspense fallback={null}>
+        <LoginAutoOpener onOpen={() => setLoginModalOpen(true)} />
+      </Suspense>
+
+      <LoginModal 
+        isOpen={loginModalOpen} 
+        onClose={() => setLoginModalOpen(false)} 
+      />
     </div>
   );
 }
