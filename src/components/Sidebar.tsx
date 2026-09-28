@@ -8,15 +8,11 @@ import {
   Archive, 
   LogOut, 
   Users, 
-  ClipboardList, 
   FileSignature, 
-  Scale, 
-  MapPin, 
   ChevronDown, 
   LayoutDashboard, 
   FilePlus, 
   FileMinus, 
-  Files, 
   Shield, 
   KeyRound, 
   Fingerprint, 
@@ -25,6 +21,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/Button';
+import { WaitModal } from '@/components/ui/WaitModal';
 import { useCurrentUser, clearUserCache } from '@/lib/hooks/useCurrentUser';
 
 type SubItem = {
@@ -50,11 +47,9 @@ const NAV_ITEMS: NavItem[] = [
     label: 'Consultas', 
     icon: Archive,
     subItems: [
-      { href: '/activos', label: 'Catálogo General', icon: Archive, requiredPermiso: 'activos:leer' },
-      { href: '/gestion-documental', label: 'Gestión Documental', icon: Files, requiredPermiso: 'tramites:leer' },
+      { href: '/activos', label: 'Catálogo de Activos', icon: Archive, requiredPermiso: 'activos:leer' },
     ]
   },
-  { href: '/asignaciones', label: 'Mis Asignaciones', icon: ClipboardList, requiredPermiso: 'activos:leer' },
   {
     label: 'Formularios',
     icon: FileSignature,
@@ -63,7 +58,6 @@ const NAV_ITEMS: NavItem[] = [
       { href: '/formularios/baja', label: 'Baja de Activos', icon: FileMinus, requiredPermiso: 'activos:baja' },
     ]
   },
-  { href: '/inspecciones', label: 'Inspecciones', icon: MapPin, requiredPermiso: 'inspeccion:crear' },
   {
     label: 'Seguridad y Auditoría',
     icon: Shield,
@@ -73,7 +67,6 @@ const NAV_ITEMS: NavItem[] = [
       { href: '/auditoria', label: 'Bitácora del Sistema', icon: Fingerprint, requiredPermiso: 'usuarios:gestionar' },
     ]
   },
-  { href: '/normativa', label: 'Normativa', icon: Scale },
 ];
 
 interface SidebarProps {
@@ -86,11 +79,9 @@ export function Sidebar({ isOpenMobile, onCloseMobile }: SidebarProps) {
   const router = useRouter();
   const { user, isAdmin, hasPermiso, hasRole, roleLabel } = useCurrentUser();
   
-  const [expanded, setExpanded] = useState<Record<string, boolean>>({
-    'Consultas': true,
-    'Formularios': true,
-    'Seguridad y Auditoría': true,
-  });
+  // Submenús inician colapsados tanto en Desktop como en Mobile
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
@@ -100,10 +91,16 @@ export function Sidebar({ isOpenMobile, onCloseMobile }: SidebarProps) {
   };
 
   const handleLogout = async () => {
-    clearUserCache();
-    await fetch('/api/auth/logout', { method: 'POST' });
-    router.push('/');
-    router.refresh();
+    setIsLoggingOut(true);
+    try {
+      clearUserCache();
+      await fetch('/api/auth/logout', { method: 'POST' });
+    } catch (err) {
+      console.error('Error cerrando sesión:', err);
+    } finally {
+      router.push('/');
+      router.refresh();
+    }
   };
 
   // Filtrado estricto: Las opciones no permitidas NO se muestran al usuario
@@ -188,7 +185,7 @@ export function Sidebar({ isOpenMobile, onCloseMobile }: SidebarProps) {
         <ul className="flex flex-col gap-1">
           {visibleNavItems.map((item) => {
             if (item.subItems) {
-              const isExpanded = expanded[item.label] ?? true;
+              const isExpanded = !!expanded[item.label];
               return (
                 <li key={item.label} className="flex flex-col gap-1">
                   <button 
@@ -274,6 +271,13 @@ export function Sidebar({ isOpenMobile, onCloseMobile }: SidebarProps) {
           </div>
         </div>
       )}
+
+      {/* Modal de espera durante logout */}
+      <WaitModal 
+        isOpen={isLoggingOut} 
+        title="Cerrando Sesión" 
+        message="Cerrando sesión de forma segura y registrando auditoría forense..." 
+      />
     </>
   );
 }

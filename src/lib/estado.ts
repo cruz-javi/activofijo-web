@@ -5,6 +5,7 @@ export const ESTADO_ACTIVO_TONE: Record<string, Tone> = {
   EXCELENTE: 'brand',
   BUENO: 'brand',
   REGULAR: 'accent',
+  EN_REPARACION: 'accent',
   MALO: 'danger',
   BAJA: 'neutral',
 };

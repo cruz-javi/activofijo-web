@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { 
   ShieldAlert, 
   Printer, 
+  Download,
   Search, 
   Filter, 
   Eye, 
@@ -173,11 +174,21 @@ export default function BitacoraPage() {
           <div className="flex items-center gap-2.5">
             <Button
               variant="secondary"
-              onClick={() => setShowExportModal(true)}
+              onClick={handlePrint}
               className="inline-flex items-center gap-2 cursor-pointer"
+              title="Imprimir listado directamente"
             >
               <Printer className="h-4 w-4" />
-              <span>Imprimir / Exportar</span>
+              <span>Imprimir</span>
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={() => setShowExportModal(true)}
+              className="inline-flex items-center gap-2 cursor-pointer"
+              title="Exportar registros auditados"
+            >
+              <Download className="h-4 w-4" />
+              <span>Exportar</span>
             </Button>
             <Button
               variant="ghost"
@@ -217,6 +228,7 @@ export default function BitacoraPage() {
             <Select value={accion} onChange={(e) => setAccion(e.target.value)} className="text-sm">
               <option value="TODOS">Todas las acciones</option>
               <option value="LOGIN">LOGIN (Autenticación)</option>
+              <option value="LOGOUT">LOGOUT (Cierre de Sesión)</option>
               <option value="CREAR_USUARIO">CREAR_USUARIO</option>
               <option value="ACTUALIZAR_USUARIO">ACTUALIZAR_USUARIO</option>
               <option value="CREAR_ROL">CREAR_ROL</option>
