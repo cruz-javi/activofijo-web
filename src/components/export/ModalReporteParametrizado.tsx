@@ -556,7 +556,7 @@ export function ModalReporteParametrizado<T>({
               ) : formato === 'pdf' ? (
                 <>
                   <Printer className="h-4 w-4" />
-                  <span>Generar e Imprimir PDF</span>
+                  <span>Previsualizar e Imprimir</span>
                 </>
               ) : (
                 <>

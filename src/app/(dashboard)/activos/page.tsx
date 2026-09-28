@@ -299,11 +299,6 @@ function ActivosContent() {
     }
   };
 
-  // Impresión directa del catálogo filtrado
-  const handlePrint = () => {
-    window.print();
-  };
-
   // Consulta de lote completo filtrado para exportación parametrizada (CU06)
   const fetchAllFilteredActivos = async (): Promise<ActivoItem[]> => {
     const params = new URLSearchParams();
@@ -341,21 +336,12 @@ function ActivosContent() {
           <div className="flex items-center gap-2.5">
             <Button
               variant="secondary"
-              onClick={handlePrint}
-              className="inline-flex items-center gap-2 cursor-pointer"
-              title="Imprimir listado institucional directamente"
-            >
-              <Printer className="h-4 w-4" />
-              <span>Imprimir</span>
-            </Button>
-            <Button
-              variant="secondary"
               onClick={() => setShowExportModal(true)}
               className="inline-flex items-center gap-2 cursor-pointer"
-              title="Exportar catálogo en múltiples formatos"
+              title="Exportar o imprimir catálogo en formatos oficiales"
             >
-              <Download className="h-4 w-4" />
-              <span>Exportar</span>
+              <Printer className="h-4 w-4" />
+              <span>Exportar / Imprimir</span>
             </Button>
             <Button
               variant="ghost"

@@ -8,12 +8,6 @@ export function openPrintReport<T>(
   filters: ReportFilterCriterion[],
   userLabel?: string,
 ) {
-  const printWindow = window.open('', '_blank', 'width=1100,height=850');
-  if (!printWindow) {
-    alert('Por favor habilite las ventanas emergentes (popups) para generar el reporte de impresión oficial.');
-    return;
-  }
-
   const paperSizeMap = {
     letter: 'letter',
     a4: 'a4',
@@ -66,7 +60,7 @@ export function openPrintReport<T>(
     .join('');
 
   const rowsHtml = data
-    .map((row, index) => {
+    .map((row) => {
       const cells = columns
         .map((col) => {
           const rawVal = (row as any)[col.key];
@@ -107,6 +101,16 @@ export function openPrintReport<T>(
     `;
   }
 
+  const safeFileTitle = headerConfig.titulo
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_|_$/g, '');
+
+  const dateFileStr = now.toISOString().split('T')[0];
+  const downloadFileName = `reporte_uagrm_${safeFileTitle}_${dateFileStr}.html`;
+
   const html = `<!DOCTYPE html>
 <html lang="es">
 <head>
@@ -115,7 +119,11 @@ export function openPrintReport<T>(
   <style>
     @page {
       size: ${cssPaperSize};
-      margin: 12mm 15mm 15mm 15mm;
+      margin: 10mm 15mm 12mm 15mm;
+      @top-left { content: none; }
+      @top-right { content: none; }
+      @bottom-left { content: none; }
+      @bottom-right { content: none; }
     }
 
     * {
@@ -314,29 +322,71 @@ export function openPrintReport<T>(
       top: 0;
       background: #0f172a;
       color: #ffffff;
-      padding: 8px 16px;
+      padding: 10px 18px;
       margin: -10px -10px 14px -10px;
       display: flex;
       justify-content: space-between;
       align-items: center;
       z-index: 100;
-      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
     }
 
-    .action-toolbar button {
-      background: #8B0000;
-      color: white;
-      border: none;
-      padding: 6px 14px;
-      border-radius: 5px;
-      font-weight: bold;
+    .toolbar-title {
+      font-size: 9.5pt;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .toolbar-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .btn-action {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 14px;
+      border-radius: 6px;
+      font-size: 8.5pt;
+      font-weight: 600;
       cursor: pointer;
-      font-size: 9pt;
-      transition: background 0.2s;
+      border: none;
+      transition: all 0.15s ease;
+      text-decoration: none;
     }
 
-    .action-toolbar button:hover {
-      background: #b91c1c;
+    .btn-print {
+      background: #8B0000;
+      color: #ffffff;
+    }
+
+    .btn-print:hover {
+      background: #a11212;
+    }
+
+    .btn-save {
+      background: #1e293b;
+      color: #f8fafc;
+      border: 1px solid #475569;
+    }
+
+    .btn-save:hover {
+      background: #334155;
+      border-color: #64748b;
+    }
+
+    .btn-close {
+      background: transparent;
+      color: #94a3b8;
+      border: 1px solid #334155;
+    }
+
+    .btn-close:hover {
+      background: #1e293b;
+      color: #ffffff;
     }
 
     @media print {
@@ -350,14 +400,29 @@ export function openPrintReport<T>(
   </style>
 </head>
 <body>
-  <!-- Barra flotante de control para pantalla -->
+  <!-- Barra de control en pantalla -->
   <div class="action-toolbar">
-    <div>
-      <strong>Previsualización de Reporte Oficial U.A.G.R.M.</strong> (${data.length} registros • Papel: ${pageConfig.tamano.toUpperCase()} • ${pageConfig.orientacion.toUpperCase()})
+    <div class="toolbar-title">
+      <strong>Previsualización Institucional U.A.G.R.M.</strong>
+      <span style="color: #94a3b8; font-size: 8.5pt;">(${data.length} registros • ${pageConfig.tamano.toUpperCase()} • ${pageConfig.orientacion.toUpperCase()})</span>
     </div>
-    <div>
-      <button onclick="window.print()">🖨️ Imprimir / Guardar como PDF</button>
-      <button onclick="window.close()" style="background: #334155; margin-left: 8px;">Cerrar</button>
+    <div class="toolbar-actions">
+      <!-- Botón Imprimir -->
+      <button onclick="window.print()" class="btn-action btn-print" title="Abrir cuadro de impresión o Guardar como PDF">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+        <span>Imprimir</span>
+      </button>
+
+      <!-- Botón Guardar directamente en archivo -->
+      <button onclick="guardarReporteArchivo()" class="btn-action btn-save" title="Descargar archivo HTML del reporte oficial directamente en su equipo">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+        <span>Guardar</span>
+      </button>
+
+      <!-- Botón Cerrar -->
+      <button onclick="window.close()" class="btn-action btn-close" title="Cerrar previsualización">
+        <span>Cerrar</span>
+      </button>
     </div>
   </div>
 
@@ -430,18 +495,52 @@ export function openPrintReport<T>(
   }
 
   <script>
-    // Disparar diálogo de impresión automáticamente al abrir si el usuario lo desea
-    window.onload = function() {
-      // Dejar que renderice y luego auto-abrir print
-      setTimeout(function() {
-        window.print();
-      }, 350);
-    };
+    // Función para descargar directamente el reporte como archivo HTML oficial
+    function guardarReporteArchivo() {
+      try {
+        var clone = document.documentElement.cloneNode(true);
+        var tb = clone.querySelector('.action-toolbar');
+        if (tb) tb.remove();
+        var sc = clone.querySelectorAll('script');
+        sc.forEach(function(s) { s.remove(); });
+        var htmlContent = '<!DOCTYPE html>\\n' + clone.outerHTML;
+        var blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+        var link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = ${JSON.stringify(downloadFileName)};
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        setTimeout(function() { URL.revokeObjectURL(link.href); }, 1500);
+      } catch (e) {
+        alert('Error al guardar el reporte: ' + e.message);
+      }
+    }
   </script>
 </body>
 </html>`;
 
-  printWindow.document.open();
-  printWindow.document.write(html);
-  printWindow.document.close();
+  // Apertura mediante Blob URL para evitar la leyenda "about:blank" en la cabecera del navegador
+  try {
+    const htmlBlob = new Blob([html], { type: 'text/html;charset=utf-8' });
+    const blobUrl = URL.createObjectURL(htmlBlob);
+    const printWindow = window.open(blobUrl, '_blank', 'width=1100,height=850');
+
+    if (!printWindow) {
+      alert('Por favor habilite las ventanas emergentes (popups) para visualizar el reporte oficial.');
+      return;
+    }
+
+    printWindow.addEventListener('unload', () => {
+      URL.revokeObjectURL(blobUrl);
+    });
+  } catch (err) {
+    // Respaldo en caso de restricción de políticas de ventana
+    const fallbackWindow = window.open('', '_blank', 'width=1100,height=850');
+    if (fallbackWindow) {
+      fallbackWindow.document.open();
+      fallbackWindow.document.write(html);
+      fallbackWindow.document.close();
+    }
+  }
 }
