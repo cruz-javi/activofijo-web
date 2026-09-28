@@ -12,6 +12,9 @@ out/
 build/
 dist/
 *.tsbuildinfo
+tsconfig.tsbuildinfo
+.vercel/
+.turbo/
 
 # Logs
 logs
