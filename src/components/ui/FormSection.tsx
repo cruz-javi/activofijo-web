@@ -1,14 +1,32 @@
 import { type ReactNode } from 'react';
 
-// Agrupa campos relacionados dentro de un formulario largo, con un
-// encabezado propio — evita la grilla plana de N campos sin jerarquía.
-export function FormSection({ title, children }: { title: string; children: ReactNode }) {
+import type { LucideIcon } from 'lucide-react';
+
+export function FormSection({ 
+  title, 
+  description, 
+  icon: Icon, 
+  children 
+}: { 
+  title: string; 
+  description?: string;
+  icon?: LucideIcon;
+  children: ReactNode;
+}) {
   return (
-    <div className="border-t border-border-soft pt-4 first:border-t-0 first:pt-0">
-      <p className="mb-3 text-[11px] font-medium uppercase tracking-wider text-ink-tertiary">
-        {title}
-      </p>
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">{children}</div>
+    <div className="flex flex-col gap-4">
+      <div className="flex items-start gap-3">
+        {Icon && (
+          <div className="mt-0.5 h-6 w-6 shrink-0 text-ink-tertiary">
+            <Icon className="h-5 w-5" />
+          </div>
+        )}
+        <div className="flex flex-col">
+          <h2 className="text-base font-semibold text-ink">{title}</h2>
+          {description && <p className="text-sm text-ink-secondary">{description}</p>}
+        </div>
+      </div>
+      <div className="pl-0 sm:pl-9">{children}</div>
     </div>
   );
 }

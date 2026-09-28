@@ -1,39 +1,56 @@
 @import "tailwindcss";
 
 /*
- * Ledger patrimonial — activo fijo UAGRM.
- * Superficie de papel cálido, tinta verde institucional, acento cobre
- * (placa/sello). Ver .interface-design/system.md para el racional completo.
+ * Sistema de Diseño Institucional UAGRM - Activo Fijo
+ * Mapeo de variables centralizado para aplicar la paleta oficial de inmediato.
+ * Ref: docs/outputs/03_reglas_diseno_interfaz_uagrm.md
  */
 @theme {
   --font-sans: var(--font-public-sans), ui-sans-serif, system-ui, sans-serif;
   --font-serif: var(--font-source-serif), ui-serif, Georgia, serif;
   --font-mono: var(--font-plex-mono), ui-monospace, "SFMono-Regular", Menlo, monospace;
 
-  --color-paper: #f6f4ee;
-  --color-paper-raised: #fffdf9;
-  --color-ink: #14251c;
-  --color-ink-secondary: #47584d;
-  --color-ink-tertiary: #7c8c81;
-  --color-ink-muted: #aab4ac;
+  /* Superficies (Grises Slate UAGRM) */
+  --color-paper: #F8FAFC;        /* Fondo general */
+  --color-paper-raised: #FFFFFF; /* Tarjetas y paneles */
+  
+  /* Textos (Azul Noche / Pizarra) */
+  --color-ink: #0F172A;          /* Textos principales y títulos */
+  --color-ink-secondary: #475569; /* Descripciones */
+  --color-ink-tertiary: #64748B;  /* Textos tenues */
+  --color-ink-muted: #94A3B8;     /* Placeholders */
 
-  --color-brand: #1f5c3d;
-  --color-brand-strong: #163f2a;
-  --color-brand-surface: #e6f0e9;
+  /* Identidad Primaria (Rojo Carmín UAGRM) */
+  --color-brand: #B91C1C;
+  --color-brand-strong: #991B1B;
+  --color-brand-surface: #FEF2F2;
 
-  --color-accent: #b8863b;
-  --color-accent-strong: #8f6926;
-  --color-accent-surface: #f5ead4;
+  /* Acentos (Ámbar para observados) */
+  --color-accent: #D97706;
+  --color-accent-strong: #B45309;
+  --color-accent-surface: #FFFBEB;
 
-  --color-danger: #9c3b2e;
-  --color-danger-surface: #f8e6e1;
+  /* Peligro / Bajas */
+  --color-danger: #B91C1C;
+  --color-danger-surface: #FEF2F2;
 
-  --color-border: rgba(20, 37, 28, 0.12);
-  --color-border-soft: rgba(20, 37, 28, 0.07);
+  /* Identidad Secundaria (Azul Marino / Noche UAGRM) */
+  --color-brand-navy: #0F172A;
+  --color-brand-navy-strong: #0A101D;
+  --color-brand-navy-surface: #F1F5F9;
+  --color-brand-blue: #1D4ED8;
+  --color-brand-blue-surface: #EFF6FF;
 
-  --radius-sm: 5px;
-  --radius-md: 9px;
-  --radius-lg: 16px;
+  /* Bordes */
+  --color-border: #CBD5E1;
+  --color-border-soft: #E2E8F0;
+
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --radius-2xl: 16px;
+  --radius-3xl: 24px;
 }
 
 :root {

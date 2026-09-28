@@ -6,11 +6,18 @@ export async function POST(request: Request) {
     const body = await request.json();
     const coreUrl = process.env.CORE_API_URL || 'http://localhost:3000';
 
+    const clientIp = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || '127.0.0.1';
+    const userAgent = request.headers.get('user-agent') || 'Browser';
+
     const res = await fetch(`${coreUrl}/auth/login`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'x-forwarded-for': clientIp,
+        'user-agent': userAgent,
+      },
       body: JSON.stringify({
-        email: body.email,
+        identificador: body.identificador || body.email,
         password: body.password,
         deviceId: 'web-dashboard',
       }),

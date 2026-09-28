@@ -1,0 +1,36 @@
+# Dependency directories
+node_modules
+.pnp
+.pnp.js
+
+# Next.js build output & caches
+.next
+out
+build
+dist
+*.tsbuildinfo
+tsconfig.tsbuildinfo
+
+# Version control & IDE
+.git
+.github
+.vscode
+.idea
+
+# Environment files & credentials
+.env
+.env.*
+!.env.example
+
+# Logs & testing
+coverage
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# OS metadata
+.DS_Store
+Thumbs.db

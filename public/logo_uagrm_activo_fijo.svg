@@ -1,0 +1,86 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 470 380" width="100%" height="100%">
+  <defs>
+    <style>
+      .af-red { fill: #C5221F; }
+      .af-navy { fill: #231C32; }
+      .af-serif-navy {
+        font-family: 'Times New Roman', Times, 'Georgia', serif;
+        font-weight: 700;
+        fill: #231C32;
+      }
+      .af-serif-red {
+        font-family: 'Times New Roman', Times, 'Georgia', serif;
+        font-weight: 700;
+        fill: #C5221F;
+      }
+    </style>
+  </defs>
+
+  <!-- ====================================================================== -->
+  <!-- 1. PATA IZQUIERDA DE LA 'A' (Rojo Institucional UAGRM)                 -->
+  <!-- Espaciado con la pata derecha reducido a ~15px (la mitad del anterior) -->
+  <!-- ====================================================================== -->
+  <polygon class="af-red" points="
+    30,340 
+    90,340 
+    181,125 
+    158,68
+  " />
+
+  <!-- ====================================================================== -->
+  <!-- 2. PATA DERECHA DE LA 'A' (Azul Noche / Berenjena Profundo)            -->
+  <!-- ====================================================================== -->
+  <polygon class="af-navy" points="
+    168,55 
+    228,55 
+    348,340 
+    288,340
+  " />
+
+  <!-- ====================================================================== -->
+  <!-- 3. PALITO HORIZONTAL SUPERIOR DE LA 'F' (Azul Noche)                   -->
+  <!-- Espaciado diagonal con la pata derecha reducido a 11px (la mitad)      -->
+  <!-- ====================================================================== -->
+  <polygon class="af-navy" points="
+    239,55 
+    425,55 
+    425,105 
+    260,105
+  " />
+
+  <!-- ====================================================================== -->
+  <!-- 4. PALITO HORIZONTAL MEDIO DE LA 'F' (Azul Noche)                      -->
+  <!-- Espaciado diagonal con la pata derecha reducido a 11px (la mitad)      -->
+  <!-- ====================================================================== -->
+  <polygon class="af-navy" points="
+    283,160 
+    395,160 
+    395,210 
+    304,210
+  " />
+
+  <!-- ====================================================================== -->
+  <!-- BLOQUE INTERNO CENTRADO EN EL EJE DE LA 'A': UA [ESCUDO] GRM           -->
+  <!-- Eje de simetría de la 'A': X = 189                                     -->
+  <!-- ====================================================================== -->
+  <g id="texto-interno-uagrm">
+    <!-- Fila 1: 'UA' + Escudo Universitario centrado en X = 189 -->
+    <g transform="translate(144, 250)">
+      <text x="0" y="32" class="af-serif-navy" font-size="38" letter-spacing="1">UA</text>
+      
+      <!-- Escudo / Sello UAGRM -->
+      <g transform="translate(60, 4)">
+        <circle cx="14" cy="18" r="14" fill="#231C32" />
+        <circle cx="14" cy="18" r="12" fill="#FFFFFF" />
+        <circle cx="14" cy="18" r="10.5" fill="#231C32" />
+        <!-- Estrella superior de 8 puntas -->
+        <polygon points="14,10 15,12.5 17.5,12.5 15.5,14 16.5,16.5 14,15 11.5,16.5 12.5,14 10.5,12.5 13,12.5" fill="#FFFFFF" />
+        <!-- Libro abierto académico -->
+        <path d="M 9.5,20 Q 11.5,18.5 14,20 Q 16.5,18.5 18.5,20 L 18.5,24 Q 16.5,22.5 14,24 Q 11.5,22.5 9.5,24 Z" fill="#FFFFFF" />
+      </g>
+    </g>
+
+    <!-- Fila 2: 'GRM' exactamente centrado en el eje X = 189 -->
+    <text x="189" y="324" class="af-serif-red" font-size="38" letter-spacing="1.5" text-anchor="middle">GRM</text>
+  </g>
+</svg>
