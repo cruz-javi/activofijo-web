@@ -1,6 +1,5 @@
 'use client';
 
-import { Loader2 } from 'lucide-react';
 import Image from 'next/image';
 
 interface WaitModalProps {
@@ -11,8 +10,7 @@ interface WaitModalProps {
 
 export function WaitModal({
   isOpen,
-  title = 'Procesando solicitud...',
-  message = 'Por favor espere un momento mientras se completa la operación.',
+  title = 'Cerrando sesión...',
 }: WaitModalProps) {
   if (!isOpen) return null;
 
@@ -23,11 +21,12 @@ export function WaitModal({
       aria-live="polite"
     >
       <div 
-        className="w-full max-w-sm rounded-2xl bg-paper-raised border border-border-soft p-6 sm:p-7 shadow-2xl text-center flex flex-col items-center animate-in zoom-in-95 duration-200"
+        className="w-56 max-w-full rounded-2xl bg-paper-raised border border-border-soft p-6 shadow-2xl text-center flex flex-col items-center justify-center animate-in zoom-in-95 duration-200"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="relative mb-4 flex items-center justify-center">
-          <div className="h-16 w-16 rounded-2xl bg-brand-surface border border-brand/20 flex items-center justify-center shadow-xs">
+        {/* Ícono institucional con anillo concéntrico de carga perfectamente centrado */}
+        <div className="relative flex items-center justify-center mb-4">
+          <div className="h-14 w-14 rounded-2xl bg-brand-surface border border-brand/20 flex items-center justify-center shadow-xs">
             <Image
               src="/logo_uagrm_activo_fijo.svg"
               alt="UAGRM"
@@ -36,17 +35,12 @@ export function WaitModal({
               className="w-8 h-8 object-contain"
             />
           </div>
-          <div className="absolute -bottom-1 -right-1 h-7 w-7 rounded-full bg-brand text-white flex items-center justify-center shadow-sm">
-            <Loader2 className="h-4 w-4 animate-spin" />
-          </div>
+          <div className="absolute inset-0 -m-1 rounded-[18px] border-2 border-brand border-t-transparent animate-spin" />
         </div>
 
-        <h3 className="text-base font-bold text-ink font-serif tracking-tight mb-1.5">
+        <h3 className="text-sm font-bold text-ink font-serif tracking-tight text-center">
           {title}
         </h3>
-        <p className="text-xs text-ink-secondary leading-relaxed max-w-xs">
-          {message}
-        </p>
       </div>
     </div>
   );

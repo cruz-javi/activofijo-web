@@ -275,8 +275,7 @@ export function Sidebar({ isOpenMobile, onCloseMobile }: SidebarProps) {
       {/* Modal de espera durante logout */}
       <WaitModal 
         isOpen={isLoggingOut} 
-        title="Cerrando Sesión" 
-        message="Cerrando sesión de forma segura y registrando auditoría forense..." 
+        title="Cerrando sesión..." 
       />
     </>
   );

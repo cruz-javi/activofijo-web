@@ -27,6 +27,7 @@ import { Panel } from '@/components/ui/Panel';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Select } from '@/components/ui/Select';
 import { Input } from '@/components/ui/Input';
+import { Pagination } from '@/components/ui/Pagination';
 import { Td, TBody, TableCard, Th, THead, Tr } from '@/components/ui/Table';
 import { useCurrentUser } from '@/lib/hooks/useCurrentUser';
 
@@ -45,12 +46,15 @@ interface AuditItem {
   creadoEn: string;
 }
 
+const PAGE_SIZE = 20;
+
 export default function BitacoraPage() {
   const router = useRouter();
   const { user: currentUser, loading: loadingUser, isAdmin, roleLabel } = useCurrentUser();
 
   const [items, setItems] = useState<AuditItem[]>([]);
   const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -66,7 +70,8 @@ export default function BitacoraPage() {
   // Modal de exportación / impresión
   const [showExportModal, setShowExportModal] = useState(false);
 
-  const fetchBitacora = async () => {
+  const fetchBitacora = async (pageOverride?: number) => {
+    const currentPage = pageOverride !== undefined ? pageOverride : page;
     setLoading(true);
     try {
       const params = new URLSearchParams();
@@ -74,7 +79,8 @@ export default function BitacoraPage() {
       if (accion !== 'TODOS') params.set('accion', accion);
       if (modulo !== 'TODOS') params.set('modulo', modulo);
       if (resultado !== 'TODOS') params.set('resultado', resultado);
-      params.set('limit', '100');
+      params.set('limit', String(PAGE_SIZE));
+      params.set('offset', String((currentPage - 1) * PAGE_SIZE));
 
       const res = await fetch(`/api/proxy/auditoria?${params.toString()}`);
       if (res.status === 401) {
@@ -103,11 +109,12 @@ export default function BitacoraPage() {
       fetchBitacora();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAdmin, accion, modulo, resultado]);
+  }, [isAdmin, accion, modulo, resultado, page]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    fetchBitacora();
+    setPage(1);
+    fetchBitacora(1);
   };
 
   const formatFechaBolivia = (isoDate: string) => {
@@ -192,7 +199,7 @@ export default function BitacoraPage() {
             </Button>
             <Button
               variant="ghost"
-              onClick={fetchBitacora}
+              onClick={() => fetchBitacora()}
               className="p-2.5 text-ink-secondary hover:text-ink cursor-pointer"
               title="Refrescar registros"
             >
@@ -225,7 +232,14 @@ export default function BitacoraPage() {
             <label className="block text-[11px] font-semibold text-ink-tertiary uppercase tracking-wider mb-1.5">
               Acción
             </label>
-            <Select value={accion} onChange={(e) => setAccion(e.target.value)} className="text-sm">
+            <Select 
+              value={accion} 
+              onChange={(e) => { 
+                setAccion(e.target.value); 
+                setPage(1); 
+              }} 
+              className="text-sm"
+            >
               <option value="TODOS">Todas las acciones</option>
               <option value="LOGIN">LOGIN (Autenticación)</option>
               <option value="LOGOUT">LOGOUT (Cierre de Sesión)</option>
@@ -241,7 +255,14 @@ export default function BitacoraPage() {
             <label className="block text-[11px] font-semibold text-ink-tertiary uppercase tracking-wider mb-1.5">
               Resultado
             </label>
-            <Select value={resultado} onChange={(e) => setResultado(e.target.value)} className="text-sm">
+            <Select 
+              value={resultado} 
+              onChange={(e) => { 
+                setResultado(e.target.value); 
+                setPage(1); 
+              }} 
+              className="text-sm"
+            >
               <option value="TODOS">Todos los resultados</option>
               <option value="EXITOSO">EXITOSO</option>
               <option value="DENEGADO_SIN_PERMISO">DENEGADO_SIN_PERMISO</option>
@@ -254,7 +275,14 @@ export default function BitacoraPage() {
             <label className="block text-[11px] font-semibold text-ink-tertiary uppercase tracking-wider mb-1.5">
               Módulo
             </label>
-            <Select value={modulo} onChange={(e) => setModulo(e.target.value)} className="text-sm">
+            <Select 
+              value={modulo} 
+              onChange={(e) => { 
+                setModulo(e.target.value); 
+                setPage(1); 
+              }} 
+              className="text-sm"
+            >
               <option value="TODOS">Todos los módulos</option>
               <option value="IDENTIDAD_ACCESO">IDENTIDAD_ACCESO</option>
               <option value="PATRIMONIO">PATRIMONIO</option>
@@ -282,7 +310,19 @@ export default function BitacoraPage() {
           No se encontraron eventos en la bitácora con los criterios seleccionados.
         </Panel>
       ) : (
-        <TableCard>
+        <TableCard
+          footer={
+            <Pagination
+              page={page}
+              pageSize={PAGE_SIZE}
+              total={total}
+              onPageChange={(newPage) => {
+                setPage(newPage);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+            />
+          }
+        >
           <THead>
             <Th>Fecha y Hora (BO)</Th>
             <Th>Funcionario / Correo</Th>

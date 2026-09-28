@@ -572,9 +572,7 @@ function ActivosContent() {
             />
           }
         >
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <THead>
+          <THead>
                 <Th className="w-36">Código</Th>
                 <Th>Descripción / Especificación</Th>
                 <Th>Unidad / Ubicación</Th>
@@ -677,8 +675,6 @@ function ActivosContent() {
                   </Tr>
                 ))}
               </TBody>
-            </table>
-          </div>
         </TableCard>
       )}
 
@@ -754,7 +750,7 @@ function ActivosContent() {
 
               {/* Sección 1: Datos Técnicos */}
               <div>
-                <h5 className="text-xs font-bold text-ink uppercase tracking-wider flex items-center gap-2 mb-3 text-ink-secondary border-b border-border-soft pb-1.5">
+                <h5 className="text-xs font-bold text-ink-secondary uppercase tracking-wider flex items-center gap-2 mb-3 border-b border-border-soft pb-1.5">
                   <Laptop className="h-4 w-4 text-brand" />
                   Especificaciones Técnicas del Bien
                 </h5>
@@ -790,7 +786,7 @@ function ActivosContent() {
 
               {/* Sección 2: Asignación y Custodia Institucional */}
               <div>
-                <h5 className="text-xs font-bold text-ink uppercase tracking-wider flex items-center gap-2 mb-3 text-ink-secondary border-b border-border-soft pb-1.5">
+                <h5 className="text-xs font-bold text-ink-secondary uppercase tracking-wider flex items-center gap-2 mb-3 border-b border-border-soft pb-1.5">
                   <UserCheck className="h-4 w-4 text-brand" />
                   Custodia Legal y Asignación
                 </h5>
@@ -845,7 +841,7 @@ function ActivosContent() {
 
               {/* Sección 3: Datos de Incorporación y Trazabilidad */}
               <div>
-                <h5 className="text-xs font-bold text-ink uppercase tracking-wider flex items-center gap-2 mb-3 text-ink-secondary border-b border-border-soft pb-1.5">
+                <h5 className="text-xs font-bold text-ink-secondary uppercase tracking-wider flex items-center gap-2 mb-3 border-b border-border-soft pb-1.5">
                   <ShieldCheck className="h-4 w-4 text-brand" />
                   Incorporación y Fiscalización
                 </h5>
