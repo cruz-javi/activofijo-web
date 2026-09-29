@@ -14,6 +14,7 @@ import {
   FilePlus, 
   FileMinus, 
   Shield, 
+  ShieldCheck,
   KeyRound, 
   Fingerprint, 
   Tag,
@@ -65,6 +66,7 @@ const NAV_ITEMS: NavItem[] = [
       {href: '/etiquetas', label: 'Identificadores y Etiquetas', icon: Tag, requiredPermiso: 'activos:leer' },
     ]
   },
+  { href: '/seguridad', label: 'Seguridad de la Cuenta', icon: ShieldCheck },
   {
     label: 'Seguridad y Auditoría',
     icon: Shield,

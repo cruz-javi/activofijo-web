@@ -4,6 +4,21 @@ import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { X, Eye, EyeOff, ShieldAlert, ArrowRight, Loader2 } from 'lucide-react';
+import { VerificacionDosFactoresForm } from './VerificacionDosFactoresForm';
+import { ConfiguracionDosFactores } from './ConfiguracionDosFactores';
+
+type PasoLogin = 'credenciales' | 'verificacion' | 'configuracion';
+
+const ENDPOINTS_CONFIGURACION_INICIAL = {
+  configurar: '/api/auth/2fa/inicial/configurar',
+  activar: '/api/auth/2fa/inicial/activar',
+};
+
+const TITULOS_PASO: Record<PasoLogin, { titulo: string; subtitulo: string }> = {
+  credenciales: { titulo: 'Acceso al Sistema', subtitulo: 'Departamento de Activo Fijo • UAGRM' },
+  verificacion: { titulo: 'Verificación en dos pasos', subtitulo: 'Confirme su identidad para continuar' },
+  configuracion: { titulo: 'Active la verificación en dos pasos', subtitulo: 'Requerida para su rol institucional' },
+};
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -17,6 +32,7 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [paso, setPaso] = useState<PasoLogin>('credenciales');
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -24,6 +40,7 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
       setError(null);
       setIdentificador('');
       setPassword('');
+      setPaso('credenciales');
       const timer = setTimeout(() => inputRef.current?.focus(), 50);
       return () => clearTimeout(timer);
     }
@@ -40,6 +57,18 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
   }, [isOpen, onClose]);
 
   if (!isOpen) return null;
+
+  const finalizarAcceso = () => {
+    onClose();
+    router.push('/dashboard');
+    router.refresh();
+  };
+
+  const volverACredenciales = () => {
+    setPassword('');
+    setError(null);
+    setPaso('credenciales');
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -61,9 +90,16 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
         throw new Error(data.message || 'Credenciales inválidas');
       }
 
-      onClose();
-      router.push('/dashboard');
-      router.refresh();
+      if (data.requiere2fa) {
+        setPaso('verificacion');
+        return;
+      }
+      if (data.requiereConfiguracion2fa) {
+        setPaso('configuracion');
+        return;
+      }
+
+      finalizarAcceso();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Error al procesar el inicio de sesión';
       setError(msg);
@@ -104,15 +140,28 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
             </div>
             <div className="flex flex-col">
               <h2 id="modal-title" className="font-bold text-ink text-base tracking-tight leading-none">
-                Acceso al Sistema
+                {TITULOS_PASO[paso].titulo}
               </h2>
               <span className="text-xs text-ink-secondary mt-1">
-                Departamento de Activo Fijo • UAGRM
+                {TITULOS_PASO[paso].subtitulo}
               </span>
             </div>
           </div>
 
-          {error && (
+          {paso === 'verificacion' && (
+            <VerificacionDosFactoresForm onVerificado={finalizarAcceso} onVolver={volverACredenciales} />
+          )}
+
+          {paso === 'configuracion' && (
+            <ConfiguracionDosFactores
+              endpoints={ENDPOINTS_CONFIGURACION_INICIAL}
+              etiquetaContinuar="Continuar al sistema"
+              onCompletado={finalizarAcceso}
+              onCancelar={volverACredenciales}
+            />
+          )}
+
+          {paso === 'credenciales' && error && (
             <div 
               className={`mb-5 p-3.5 rounded-xl border text-xs leading-relaxed flex items-start gap-2.5 ${
                 isBlocked
@@ -128,6 +177,8 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
             </div>
           )}
 
+          {paso === 'credenciales' && (
+          <>
           <form onSubmit={handleSubmit} autoComplete="off" className="space-y-4">
             <div>
               <label 
@@ -205,6 +256,8 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
               ¿Olvidó su contraseña o requiere desbloqueo? Consulte de forma presencial con el Administrador de Activo Fijo.
             </span>
           </div>
+          </>
+          )}
         </div>
       </div>
     </div>

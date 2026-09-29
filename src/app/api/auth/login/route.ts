@@ -1,36 +1,39 @@
 import { NextResponse } from 'next/server';
-import { setSession } from '@/lib/session';
+import { setSession, setDesafioDosFactores } from '@/lib/session';
+import { postCore } from '@/lib/core-client';
+import { esDesafio, type RespuestaLoginCore } from '@/lib/auth-types';
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const coreUrl = process.env.CORE_API_URL || 'http://localhost:3000';
 
-    const clientIp = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || '127.0.0.1';
-    const userAgent = request.headers.get('user-agent') || 'Browser';
-
-    const res = await fetch(`${coreUrl}/auth/login`, {
-      method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json',
-        'x-forwarded-for': clientIp,
-        'user-agent': userAgent,
-      },
-      body: JSON.stringify({
+    const { ok, status, data } = await postCore<RespuestaLoginCore>(
+      '/auth/login',
+      {
         identificador: body.identificador || body.email,
         password: body.password,
         deviceId: 'web-dashboard',
-      }),
-    });
+      },
+      request,
+    );
 
-    const data = await res.json();
-    if (!res.ok) {
-      return NextResponse.json(data, { status: res.status });
+    if (!ok) {
+      return NextResponse.json(data, { status });
+    }
+
+    if (esDesafio(data)) {
+      await setDesafioDosFactores(data.desafioToken);
+      return NextResponse.json({
+        success: true,
+        requiere2fa: 'requiere2fa' in data,
+        requiereConfiguracion2fa: 'requiereConfiguracion2fa' in data,
+      });
     }
 
     await setSession(data.accessToken, data.refreshToken);
     return NextResponse.json({ success: true, user: data.user });
-  } catch (error: any) {
-    return NextResponse.json({ message: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Error al procesar el inicio de sesión';
+    return NextResponse.json({ message }, { status: 500 });
   }
 }

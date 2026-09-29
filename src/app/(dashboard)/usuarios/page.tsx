@@ -29,6 +29,7 @@ interface UsuarioItem {
   estado?: string;
   activo: boolean;
   intentosFallidos?: number;
+  twoFactorHabilitado?: boolean;
   creadoEn?: string;
   createdAt?: string;
 }
@@ -204,6 +205,26 @@ export default function UsuariosPage() {
       setEditError(err.message);
     } finally {
       setEditSaving(false);
+    }
+  };
+
+  const [reinicioPendienteId, setReinicioPendienteId] = useState<string | null>(null);
+
+  const handleReiniciarDosFactores = async (usuario: UsuarioItem) => {
+    if (reinicioPendienteId !== usuario.id) {
+      setReinicioPendienteId(usuario.id);
+      return;
+    }
+    setReinicioPendienteId(null);
+    try {
+      const res = await fetch(`/api/proxy/usuarios/${usuario.id}/reiniciar-2fa`, { method: 'POST' });
+      if (!res.ok) {
+        throw new Error('No se pudo restablecer la verificación en dos pasos');
+      }
+      toast.show(`Verificación en dos pasos de ${usuario.email} restablecida.`);
+      await fetchUsuarios();
+    } catch (err: unknown) {
+      toast.show(err instanceof Error ? err.message : 'Error al restablecer la verificación');
     }
   };
 
@@ -482,6 +503,9 @@ export default function UsuariosPage() {
                     <Badge tone={ESTADO_USUARIO_TONE[item.estado || (item.activo ? 'ACTIVO' : 'INACTIVO')] ?? 'neutral'}>
                       {item.estado || (item.activo ? 'ACTIVO' : 'INACTIVO')}
                     </Badge>
+                    <div className="text-[11px] text-ink-tertiary mt-1">
+                      Verificación en dos pasos: {item.twoFactorHabilitado ? 'activa' : 'no activada'}
+                    </div>
                   </Td>
                   <Td className="font-mono text-xs text-ink-tertiary">
                     {itemDate ? new Date(itemDate).toLocaleDateString('es-BO') : '-'}
@@ -498,6 +522,18 @@ export default function UsuariosPage() {
                         >
                           <Unlock className="h-3 w-3 mr-1" />
                           Desbloquear
+                        </Button>
+                      )}
+                      {item.twoFactorHabilitado && item.id !== currentUser?.id && (
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => handleReiniciarDosFactores(item)}
+                          onBlur={() => setReinicioPendienteId(null)}
+                          className="text-xs"
+                          title="Restablecer la verificación en dos pasos (por pérdida del celular)"
+                        >
+                          {reinicioPendienteId === item.id ? 'Confirmar restablecimiento' : 'Restablecer verificación'}
                         </Button>
                       )}
                       <Button variant="secondary" size="sm" onClick={() => startEdit(item)}>

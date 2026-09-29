@@ -13,6 +13,7 @@ const PROTECTED_PREFIXES = [
   '/inspecciones',
   '/gestion-documental',
   '/normativa',
+  '/seguridad',
 ];
 
 export function proxy(request: NextRequest) {
@@ -56,6 +57,7 @@ export const config = {
     '/inspecciones/:path*',
     '/gestion-documental/:path*',
     '/normativa/:path*',
+    '/seguridad/:path*',
     '/login',
   ],
 };
