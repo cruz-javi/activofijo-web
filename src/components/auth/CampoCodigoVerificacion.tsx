@@ -1,6 +1,7 @@
 'use client';
 
 import { forwardRef } from 'react';
+import { Input } from '@/components/ui/Input';
 
 export type ModoCodigo = 'app' | 'respaldo';
 
@@ -23,7 +24,7 @@ export const CampoCodigoVerificacion = forwardRef<HTMLInputElement, CampoCodigoV
       esApp ? crudo.replace(/\D/g, '').slice(0, LONGITUD_APP) : crudo.toUpperCase().replace(/[^A-Z0-9-]/g, '').slice(0, LONGITUD_RESPALDO);
 
     return (
-      <input
+      <Input
         ref={ref}
         id={id}
         name={id}
@@ -36,7 +37,7 @@ export const CampoCodigoVerificacion = forwardRef<HTMLInputElement, CampoCodigoV
         onChange={(e) => onChange(normalizar(e.target.value))}
         placeholder={esApp ? '000000' : 'XXXX-XXXX-XXXX'}
         maxLength={esApp ? LONGITUD_APP : LONGITUD_RESPALDO}
-        className="w-full h-12 px-3 rounded-lg border border-border-soft bg-paper text-ink text-center text-xl font-mono tabular-nums tracking-[0.3em] placeholder:text-ink-muted placeholder:tracking-[0.3em] focus:outline-none focus:border-brand focus:ring-1 focus:ring-brand disabled:opacity-60 transition-colors duration-150"
+        className="h-12 text-center font-mono text-xl tabular-nums tracking-[0.3em] placeholder:tracking-[0.3em] disabled:opacity-60"
       />
     );
   },

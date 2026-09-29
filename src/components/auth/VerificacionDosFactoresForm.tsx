@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { ArrowRight, Loader2, ShieldAlert, Smartphone } from 'lucide-react';
+import { Field } from '@/components/ui/Field';
 import { CampoCodigoVerificacion, codigoCompleto, type ModoCodigo } from './CampoCodigoVerificacion';
 
 interface VerificacionDosFactoresFormProps {
@@ -73,11 +74,8 @@ export function VerificacionDosFactoresForm({ onVerificado, onVolver }: Verifica
       )}
 
       <form onSubmit={handleSubmit} autoComplete="off" className="space-y-4">
-        <div>
-          <label htmlFor="codigo-verificacion" className="block text-xs font-semibold text-ink mb-1.5">
-            {modo === 'app' ? 'Código de verificación' : 'Código de respaldo'}
-          </label>
-          <CampoCodigoVerificacion
+        <Field label={modo === 'app' ? 'Código de verificación' : 'Código de respaldo'} htmlFor="codigo-verificacion">
+            <CampoCodigoVerificacion
             ref={inputRef}
             id="codigo-verificacion"
             value={codigo}
@@ -85,7 +83,7 @@ export function VerificacionDosFactoresForm({ onVerificado, onVolver }: Verifica
             modo={modo}
             disabled={loading || sesionExpirada}
           />
-        </div>
+          </Field>
 
         <button
           type="submit"

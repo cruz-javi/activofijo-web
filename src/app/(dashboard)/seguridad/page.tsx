@@ -6,6 +6,8 @@ import { PageHeader } from '@/components/ui/PageHeader';
 import { Panel } from '@/components/ui/Panel';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
+import { Field } from '@/components/ui/Field';
+import { Input } from '@/components/ui/Input';
 import { useToast } from '@/components/ui/Toast';
 import { ConfiguracionDosFactores } from '@/components/auth/ConfiguracionDosFactores';
 import { CampoCodigoVerificacion, codigoCompleto } from '@/components/auth/CampoCodigoVerificacion';
@@ -155,11 +157,8 @@ export default function SeguridadCuentaPage() {
                     <p>{error}</p>
                   </div>
                 )}
-                <div>
-                  <label htmlFor="password-desactivar" className="block text-xs font-semibold text-ink mb-1.5">
-                    Contraseña
-                  </label>
-                  <input
+                <Field label="Contraseña" htmlFor="password-desactivar">
+                  <Input
                     id="password-desactivar"
                     type="password"
                     autoComplete="current-password"
@@ -167,15 +166,11 @@ export default function SeguridadCuentaPage() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     disabled={enviando}
-                    className="w-full h-10 px-3 rounded-lg border border-border-soft bg-paper text-ink text-sm focus:outline-none focus:border-brand focus:ring-1 focus:ring-brand disabled:opacity-60"
                   />
-                </div>
-                <div>
-                  <label htmlFor="codigo-desactivar" className="block text-xs font-semibold text-ink mb-1.5">
-                    Código de verificación
-                  </label>
+                </Field>
+                <Field label="Código de verificación" htmlFor="codigo-desactivar">
                   <CampoCodigoVerificacion id="codigo-desactivar" value={codigo} onChange={setCodigo} disabled={enviando} />
-                </div>
+                </Field>
                 <div className="flex items-center gap-2">
                   <Button type="submit" variant="destructive" disabled={enviando || !password || !codigoCompleto(codigo, 'app')}>
                     {enviando ? (

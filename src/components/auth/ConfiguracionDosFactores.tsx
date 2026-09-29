@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { ArrowRight, Loader2, RotateCcw, ShieldAlert } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
+import { Field } from '@/components/ui/Field';
 import type { ActivacionDosFactores, ConfiguracionDosFactores as Configuracion } from '@/lib/auth-types';
 import { CampoCodigoVerificacion, codigoCompleto } from './CampoCodigoVerificacion';
 import { CodigosRespaldoPanel } from './CodigosRespaldoPanel';
@@ -137,15 +138,15 @@ export function ConfiguracionDosFactores({
         <li className="flex gap-3">
           <span className="h-6 w-6 shrink-0 rounded-full bg-brand-surface text-brand text-xs font-bold flex items-center justify-center">3</span>
           <form onSubmit={confirmar} autoComplete="off" className="flex-1 space-y-3">
-            <label htmlFor="codigo-activacion" className="block leading-relaxed">
-              Ingrese el código de 6 dígitos que aparece en la aplicación para confirmar.
-            </label>
-            <CampoCodigoVerificacion
+            <p className="leading-relaxed">Ingrese el código de 6 dígitos que aparece en la aplicación para confirmar.</p>
+            <Field label="Código de verificación" htmlFor="codigo-activacion">
+              <CampoCodigoVerificacion
               id="codigo-activacion"
               value={codigo}
               onChange={setCodigo}
               disabled={!configuracion || confirmando}
             />
+            </Field>
             <div className="flex items-center gap-2">
               <Button type="submit" className="flex-1 h-11" disabled={!configuracion || confirmando || !codigoCompleto(codigo, 'app')}>
                 {confirmando ? (
