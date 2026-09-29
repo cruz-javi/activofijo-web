@@ -86,7 +86,7 @@ export default function UsuariosPage() {
           );
         }
       }
-    } catch {}
+    } catch { }
   };
 
   const fetchUsuarios = async () => {
@@ -185,8 +185,8 @@ export default function UsuariosPage() {
       const res = await fetch(`/api/proxy/usuarios/${editingItem.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          rol: editRol, 
+        body: JSON.stringify({
+          rol: editRol,
           activo: editActivo,
           estado: editEstado,
         }),
