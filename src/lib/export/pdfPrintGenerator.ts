@@ -49,7 +49,11 @@ export function openPrintReport<T>(
     )
     .join(' ');
 
-  const headersHtml = columns
+  const numerarFilas = pageConfig.numerarFilas === true;
+
+  const headersHtml =
+    (numerarFilas ? `<th style="text-align: center; width: 4%;">N°</th>` : '') +
+    columns
     .map(
       (col) => `
       <th style="text-align: ${col.align || 'left'}; width: ${col.width || 'auto'};">
@@ -60,7 +64,7 @@ export function openPrintReport<T>(
     .join('');
 
   const rowsHtml = data
-    .map((row) => {
+    .map((row, index) => {
       const cells = columns
         .map((col) => {
           const rawVal = (row as any)[col.key];
@@ -76,7 +80,10 @@ export function openPrintReport<T>(
         })
         .join('');
 
-      return `<tr>${cells}</tr>`;
+      const numeracion = numerarFilas
+        ? `<td style="text-align: center; font-variant-numeric: tabular-nums;">${index + 1}</td>`
+        : '';
+      return `<tr>${numeracion}${cells}</tr>`;
     })
     .join('');
 
@@ -85,6 +92,7 @@ export function openPrintReport<T>(
   if (hasSums) {
     totalsRowHtml = `
       <tr class="totals-row">
+        ${numerarFilas ? '<td></td>' : ''}
         ${columns
           .map((col, idx) => {
             if (idx === 0) {

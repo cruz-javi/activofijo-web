@@ -25,6 +25,7 @@ export interface ReportHeaderConfig {
 export interface ReportPageConfig {
   tamano: PageSize;
   orientacion: PageOrientation;
+  numerarFilas?: boolean;
 }
 
 export interface ReportFilterCriterion {
