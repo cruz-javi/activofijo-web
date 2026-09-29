@@ -2,6 +2,10 @@ import { cookies } from 'next/headers';
 
 export const ACCESS_TOKEN_COOKIE = 'af_access_token';
 export const REFRESH_TOKEN_COOKIE = 'af_refresh_token';
+export const DESAFIO_2FA_COOKIE = 'af_desafio_2fa';
+
+const RUTA_DESAFIO_2FA = '/api/auth/2fa';
+const VIGENCIA_DESAFIO_SEGUNDOS = 5 * 60;
 
 export async function setSession(accessToken: string, refreshToken: string): Promise<void> {
   const cookieStore = await cookies();
@@ -29,6 +33,28 @@ export async function getSession(): Promise<{ accessToken?: string; refreshToken
   const accessToken = cookieStore.get(ACCESS_TOKEN_COOKIE)?.value;
   const refreshToken = cookieStore.get(REFRESH_TOKEN_COOKIE)?.value;
   return { accessToken, refreshToken };
+}
+
+// El desafío vive en una cookie HttpOnly limitada a /api/auth/2fa: el navegador nunca lo ve ni puede enviarlo a otras rutas.
+export async function setDesafioDosFactores(desafioToken: string): Promise<void> {
+  const cookieStore = await cookies();
+  cookieStore.set(DESAFIO_2FA_COOKIE, desafioToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict',
+    maxAge: VIGENCIA_DESAFIO_SEGUNDOS,
+    path: RUTA_DESAFIO_2FA,
+  });
+}
+
+export async function getDesafioDosFactores(): Promise<string | undefined> {
+  const cookieStore = await cookies();
+  return cookieStore.get(DESAFIO_2FA_COOKIE)?.value;
+}
+
+export async function clearDesafioDosFactores(): Promise<void> {
+  const cookieStore = await cookies();
+  cookieStore.set(DESAFIO_2FA_COOKIE, '', { maxAge: 0, path: RUTA_DESAFIO_2FA });
 }
 
 export async function clearSession(): Promise<void> {

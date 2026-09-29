@@ -2,14 +2,19 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, X, ShieldAlert, Unlock, ArrowLeft, ShieldCheck, UserCheck } from 'lucide-react';
+import { Plus, X, ShieldAlert, Unlock, ArrowLeft, Check, Edit3, KeyRound, RefreshCw, Search } from 'lucide-react';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Field } from '@/components/ui/Field';
+import { FilterBar } from '@/components/ui/FilterBar';
+import { FilterField } from '@/components/ui/FilterField';
 import { FormSection } from '@/components/ui/FormSection';
+import { IconButton } from '@/components/ui/IconButton';
 import { Input } from '@/components/ui/Input';
+import { LoadingPanel } from '@/components/ui/LoadingPanel';
 import { Panel } from '@/components/ui/Panel';
 import { PageHeader } from '@/components/ui/PageHeader';
+import { Pagination } from '@/components/ui/Pagination';
 import { Select } from '@/components/ui/Select';
 import { Td, TBody, TableCard, Th, THead, Tr } from '@/components/ui/Table';
 import { useToast } from '@/components/ui/Toast';
@@ -29,8 +34,41 @@ interface UsuarioItem {
   estado?: string;
   activo: boolean;
   intentosFallidos?: number;
+  twoFactorHabilitado?: boolean;
   creadoEn?: string;
   createdAt?: string;
+}
+
+const PAGE_SIZE = 10;
+const FILTRO_TODOS = 'TODOS';
+
+const ESTADOS_FILTRO = [
+  { id: 'ACTIVO', label: 'Activo' },
+  { id: 'BLOQUEADO_INTENTOS', label: 'Bloqueado por intentos' },
+  { id: 'SUSPENDIDO_AUDITORIA', label: 'Suspendido por auditoría' },
+  { id: 'INACTIVO', label: 'Inactivo' },
+];
+
+function obtenerRolUsuario(item: UsuarioItem): string {
+  return (item.roles && item.roles[0]) || item.rol || 'FUNCIONARIO';
+}
+
+function obtenerEstadoUsuario(item: UsuarioItem): string {
+  return item.estado || (item.activo ? 'ACTIVO' : 'INACTIVO');
+}
+
+function coincideBusqueda(item: UsuarioItem, termino: string): boolean {
+  const texto = [
+    item.nombreCompleto,
+    item.nombre,
+    item.email,
+    item.cargoInstitucional,
+    item.codigoEmpleadoLegado?.toString(),
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
+  return texto.includes(termino.toLowerCase());
 }
 
 function extractErrorMessage(errData: any, fallback: string): string {
@@ -48,6 +86,13 @@ export default function UsuariosPage() {
   const [usuarios, setUsuarios] = useState<UsuarioItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+
+  // Filtros
+  const [busqueda, setBusqueda] = useState('');
+  const [filtroRol, setFiltroRol] = useState(FILTRO_TODOS);
+  const [filtroEstado, setFiltroEstado] = useState(FILTRO_TODOS);
+  const [filtroDosPasos, setFiltroDosPasos] = useState(FILTRO_TODOS);
 
   // Form state (alta)
   const [showForm, setShowForm] = useState(false);
@@ -207,6 +252,26 @@ export default function UsuariosPage() {
     }
   };
 
+  const [reinicioPendienteId, setReinicioPendienteId] = useState<string | null>(null);
+
+  const handleReiniciarDosFactores = async (usuario: UsuarioItem) => {
+    if (reinicioPendienteId !== usuario.id) {
+      setReinicioPendienteId(usuario.id);
+      return;
+    }
+    setReinicioPendienteId(null);
+    try {
+      const res = await fetch(`/api/proxy/usuarios/${usuario.id}/reiniciar-2fa`, { method: 'POST' });
+      if (!res.ok) {
+        throw new Error('No se pudo restablecer la verificación en dos pasos');
+      }
+      toast.show(`Verificación en dos pasos de ${usuario.email} restablecida.`);
+      await fetchUsuarios();
+    } catch (err: unknown) {
+      toast.show(err instanceof Error ? err.message : 'Error al restablecer la verificación');
+    }
+  };
+
   const handleDesbloquear = async (userToUnlock: UsuarioItem) => {
     try {
       const res = await fetch(`/api/proxy/usuarios/${userToUnlock.id}`, {
@@ -223,6 +288,37 @@ export default function UsuariosPage() {
       toast.show(err.message || 'Error al desbloquear cuenta');
     }
   };
+
+  const usuariosFiltrados = usuarios.filter(
+    (item) =>
+      (!busqueda.trim() || coincideBusqueda(item, busqueda.trim())) &&
+      (filtroRol === FILTRO_TODOS || obtenerRolUsuario(item) === filtroRol) &&
+      (filtroEstado === FILTRO_TODOS || obtenerEstadoUsuario(item) === filtroEstado) &&
+      (filtroDosPasos === FILTRO_TODOS ||
+        Boolean(item.twoFactorHabilitado) === (filtroDosPasos === 'ACTIVA')),
+  );
+  const hayFiltrosActivos =
+    busqueda.trim() !== '' ||
+    filtroRol !== FILTRO_TODOS ||
+    filtroEstado !== FILTRO_TODOS ||
+    filtroDosPasos !== FILTRO_TODOS;
+
+  const cambiarFiltro = (setter: (valor: string) => void) => (valor: string) => {
+    setter(valor);
+    setPage(1);
+  };
+
+  const limpiarFiltros = () => {
+    setBusqueda('');
+    setFiltroRol(FILTRO_TODOS);
+    setFiltroEstado(FILTRO_TODOS);
+    setFiltroDosPasos(FILTRO_TODOS);
+    setPage(1);
+  };
+
+  const totalPaginas = Math.max(1, Math.ceil(usuariosFiltrados.length / PAGE_SIZE));
+  const paginaActual = Math.min(page, totalPaginas);
+  const usuariosPagina = usuariosFiltrados.slice((paginaActual - 1) * PAGE_SIZE, paginaActual * PAGE_SIZE);
 
   if (!loadingUser && !isAdmin) {
     return (
@@ -251,27 +347,41 @@ export default function UsuariosPage() {
     <>
       <PageHeader
         title="Gestión de Usuarios y Accesos"
-        description={`${usuarios.length} cuentas institucionales registradas en el sistema`}
+        description={
+          hayFiltrosActivos
+            ? `${usuariosFiltrados.length} de ${usuarios.length} cuentas institucionales`
+            : `${usuarios.length} cuentas institucionales registradas en el sistema`
+        }
         action={
-          <Button
-            onClick={() => {
-              setEditingItem(null);
-              setCreateError(null);
-              setShowForm(!showForm);
-            }}
-          >
-            {showForm ? (
-              <>
-                <X className="h-4 w-4" />
-                Cancelar
-              </>
-            ) : (
-              <>
-                <Plus className="h-4 w-4" />
-                Nuevo Usuario
-              </>
-            )}
-          </Button>
+          <div className="flex items-center gap-2.5">
+            <Button
+              onClick={() => {
+                setEditingItem(null);
+                setCreateError(null);
+                setShowForm(!showForm);
+              }}
+            >
+              {showForm ? (
+                <>
+                  <X className="h-4 w-4" />
+                  Cancelar
+                </>
+              ) : (
+                <>
+                  <Plus className="h-4 w-4" />
+                  Nuevo Usuario
+                </>
+              )}
+            </Button>
+            <Button
+              variant="ghost"
+              onClick={fetchUsuarios}
+              className="p-2.5 text-ink-secondary hover:text-ink cursor-pointer"
+              title="Refrescar cuentas"
+            >
+              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+            </Button>
+          </div>
         }
       />
 
@@ -422,18 +532,90 @@ export default function UsuariosPage() {
         </Panel>
       )}
 
-      {loading ? (
-        <Panel className="p-12 text-center text-sm text-ink-tertiary">Cargando cuentas institucionales…</Panel>
+      <FilterBar>
+        <FilterField label="Búsqueda por nombre / correo / cargo" className="lg:col-span-2">
+          <div className="relative">
+            <Input
+              type="text"
+              placeholder="Ej. Javier Cruz, admin@uagrm.edu.bo, 1001..."
+              value={busqueda}
+              onChange={(e) => cambiarFiltro(setBusqueda)(e.target.value)}
+              className="pl-9 text-sm"
+            />
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-tertiary" />
+          </div>
+        </FilterField>
+        <FilterField label="Rol">
+          <Select
+            value={filtroRol}
+            onChange={(e) => cambiarFiltro(setFiltroRol)(e.target.value)}
+            className="text-sm"
+          >
+            <option value={FILTRO_TODOS}>Todos los roles</option>
+            {roleOptions.map((opt) => (
+              <option key={opt.id} value={opt.id}>
+                {opt.label}
+              </option>
+            ))}
+          </Select>
+        </FilterField>
+        <FilterField label="Estado">
+          <Select
+            value={filtroEstado}
+            onChange={(e) => cambiarFiltro(setFiltroEstado)(e.target.value)}
+            className="text-sm"
+          >
+            <option value={FILTRO_TODOS}>Todos los estados</option>
+            {ESTADOS_FILTRO.map((opt) => (
+              <option key={opt.id} value={opt.id}>
+                {opt.label}
+              </option>
+            ))}
+          </Select>
+        </FilterField>
+        <FilterField label="Verificación en dos pasos">
+          <Select
+            value={filtroDosPasos}
+            onChange={(e) => cambiarFiltro(setFiltroDosPasos)(e.target.value)}
+            className="text-sm"
+          >
+            <option value={FILTRO_TODOS}>Todas</option>
+            <option value="ACTIVA">Activa</option>
+            <option value="NO_ACTIVADA">No activada</option>
+          </Select>
+        </FilterField>
+      </FilterBar>
+
+      {loading && usuarios.length === 0 ? (
+        <LoadingPanel message="Cargando cuentas institucionales…" />
       ) : error ? (
         <div className="rounded-lg border border-danger/25 bg-danger-surface p-4 text-sm text-danger">
           {error}
         </div>
-      ) : usuarios.length === 0 ? (
+      ) : usuariosFiltrados.length === 0 ? (
         <Panel className="p-12 text-center text-sm text-ink-tertiary">
-          No hay usuarios registrados.
+          <p>
+            {hayFiltrosActivos
+              ? 'Ninguna cuenta coincide con los filtros seleccionados.'
+              : 'No hay usuarios registrados.'}
+          </p>
+          {hayFiltrosActivos && (
+            <Button variant="secondary" onClick={limpiarFiltros} className="mt-4">
+              Limpiar filtros
+            </Button>
+          )}
         </Panel>
       ) : (
-        <TableCard>
+        <TableCard
+          footer={
+            <Pagination
+              page={paginaActual}
+              pageSize={PAGE_SIZE}
+              total={usuariosFiltrados.length}
+              onPageChange={setPage}
+            />
+          }
+        >
           <THead>
             <Th>Funcionario / Cargo</Th>
             <Th>Identificador / Correo</Th>
@@ -443,8 +625,8 @@ export default function UsuariosPage() {
             <Th className="text-center">Acciones</Th>
           </THead>
           <TBody>
-            {usuarios.map((item) => {
-              const itemRole = (item.roles && item.roles[0]) || item.rol || 'FUNCIONARIO';
+            {usuariosPagina.map((item) => {
+              const itemRole = obtenerRolUsuario(item);
               const isLocked = item.estado === 'BLOQUEADO_INTENTOS';
               const itemDate = item.creadoEn || item.createdAt;
 
@@ -479,9 +661,12 @@ export default function UsuariosPage() {
                     </Badge>
                   </Td>
                   <Td>
-                    <Badge tone={ESTADO_USUARIO_TONE[item.estado || (item.activo ? 'ACTIVO' : 'INACTIVO')] ?? 'neutral'}>
-                      {item.estado || (item.activo ? 'ACTIVO' : 'INACTIVO')}
+                    <Badge tone={ESTADO_USUARIO_TONE[obtenerEstadoUsuario(item)] ?? 'neutral'}>
+                      {obtenerEstadoUsuario(item)}
                     </Badge>
+                    <div className="text-[11px] text-ink-tertiary mt-1">
+                      Verificación en dos pasos: {item.twoFactorHabilitado ? 'activa' : 'no activada'}
+                    </div>
                   </Td>
                   <Td className="font-mono text-xs text-ink-tertiary">
                     {itemDate ? new Date(itemDate).toLocaleDateString('es-BO') : '-'}
@@ -489,20 +674,37 @@ export default function UsuariosPage() {
                   <Td className="text-center">
                     <div className="flex items-center justify-center gap-2">
                       {isLocked && (
-                        <Button
-                          variant="secondary"
-                          size="sm"
+                        <IconButton
+                          label="Desbloquear cuenta"
+                          icon={<Unlock className="h-3.5 w-3.5" />}
                           onClick={() => handleDesbloquear(item)}
-                          className="text-xs text-brand hover:text-brand-strong border-brand/30"
-                          title="Desbloquear cuenta de usuario presencialmente"
-                        >
-                          <Unlock className="h-3 w-3 mr-1" />
-                          Desbloquear
-                        </Button>
+                          className="text-brand border-brand/30"
+                        />
                       )}
-                      <Button variant="secondary" size="sm" onClick={() => startEdit(item)}>
-                        Editar
-                      </Button>
+                      {item.twoFactorHabilitado && item.id !== currentUser?.id && (
+                        <IconButton
+                          label={
+                            reinicioPendienteId === item.id
+                              ? 'Confirmar restablecimiento de verificación'
+                              : 'Restablecer verificación en dos pasos'
+                          }
+                          icon={
+                            reinicioPendienteId === item.id ? (
+                              <Check className="h-3.5 w-3.5" />
+                            ) : (
+                              <KeyRound className="h-3.5 w-3.5" />
+                            )
+                          }
+                          variant={reinicioPendienteId === item.id ? 'destructive' : 'secondary'}
+                          onClick={() => handleReiniciarDosFactores(item)}
+                          onBlur={() => setReinicioPendienteId(null)}
+                        />
+                      )}
+                      <IconButton
+                        label="Editar usuario"
+                        icon={<Edit3 className="h-3.5 w-3.5" />}
+                        onClick={() => startEdit(item)}
+                      />
                     </div>
                   </Td>
                 </Tr>

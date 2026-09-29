@@ -15,6 +15,8 @@ export interface CurrentUser {
   roles: string[];
   permisos: string[];
   activo: boolean;
+  dosFactoresActivo?: boolean;
+  dosFactoresObligatorio?: boolean;
 }
 
 // Cache global en memoria y coalescencia de promesas para evitar inundar la API

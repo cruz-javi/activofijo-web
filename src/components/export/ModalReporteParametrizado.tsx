@@ -130,6 +130,7 @@ export function ModalReporteParametrizado<T>({
         pagina: {
           tamano: tamanoHoja,
           orientacion,
+          numerarFilas: true,
         },
         columnasDisponibles: columns,
         columnasSeleccionadas: selectedColumnKeys,

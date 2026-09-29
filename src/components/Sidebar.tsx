@@ -14,6 +14,7 @@ import {
   FilePlus, 
   FileMinus, 
   Shield, 
+  ShieldCheck,
   KeyRound, 
   Fingerprint, 
   Tag,
@@ -59,10 +60,11 @@ const NAV_ITEMS: NavItem[] = [
       { href: '/formularios/baja', label: 'Baja de Activos', icon: FileMinus, requiredPermiso: 'activos:baja' },
     ]
   },
-  { label:'Codificacion',
-    icon:Tag,
-    subItems:[
-      {href: '/etiquetas', label: 'Identificadores y Etiquetas', icon: Tag, requiredPermiso: 'activos:leer' },
+  { 
+    label: 'Codificación',
+    icon: Tag,
+    subItems: [
+      { href: '/etiquetas', label: 'Identificadores y Etiquetas', icon: Tag, requiredPermiso: 'activos:leer' },
     ]
   },
   {
@@ -245,14 +247,31 @@ export function Sidebar({ isOpenMobile, onCloseMobile }: SidebarProps) {
             )}
           </div>
         )}
-        <Button 
-          variant="ghost" 
-          className="w-full justify-start text-ink-secondary hover:text-brand hover:bg-brand-surface transition-colors cursor-pointer" 
-          onClick={handleLogout}
-        >
-          <LogOut className="h-4 w-4 mr-2" />
-          Cerrar sesión
-        </Button>
+
+        <div className="flex flex-col gap-1 border-t border-border-soft/60 pt-2">
+          <Link
+            href="/seguridad"
+            onClick={() => onCloseMobile?.()}
+            className={cn(
+              'flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-xs font-medium transition-colors cursor-pointer',
+              pathname === '/seguridad'
+                ? 'bg-brand/10 text-brand font-semibold'
+                : 'text-ink-secondary hover:bg-border-soft hover:text-ink'
+            )}
+          >
+            <ShieldCheck className="h-4 w-4 text-brand shrink-0" />
+            <span>Seguridad de la cuenta</span>
+          </Link>
+
+          <Button 
+            variant="ghost" 
+            className="w-full justify-start text-ink-secondary hover:text-brand hover:bg-brand-surface transition-colors cursor-pointer text-xs" 
+            onClick={handleLogout}
+          >
+            <LogOut className="h-4 w-4 mr-2" />
+            Cerrar sesión
+          </Button>
+        </div>
       </div>
     </div>
   );

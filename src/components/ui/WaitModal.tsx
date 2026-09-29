@@ -24,18 +24,20 @@ export function WaitModal({
         className="w-56 max-w-full rounded-2xl bg-paper-raised border border-border-soft p-6 shadow-2xl text-center flex flex-col items-center justify-center animate-in zoom-in-95 duration-200"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Ícono institucional con anillo concéntrico de carga perfectamente centrado */}
-        <div className="relative flex items-center justify-center mb-4">
-          <div className="h-14 w-14 rounded-2xl bg-brand-surface border border-brand/20 flex items-center justify-center shadow-xs">
-            <Image
-              src="/logo_uagrm_activo_fijo.svg"
-              alt="UAGRM"
-              width={34}
-              height={34}
-              className="w-8 h-8 object-contain"
-            />
+        {/* El marco no rota: gira un degradado cónico detrás de él y el tramo más intenso simula el avance de la carga */}
+        <div className="relative mb-4 h-[72px] w-[72px] overflow-hidden rounded-[22px] bg-brand/15">
+          <div className="absolute -inset-1/2 animate-spin bg-[conic-gradient(from_0deg,transparent_0%,transparent_45%,var(--color-brand)_100%)]" />
+          <div className="absolute inset-[3px] flex items-center justify-center rounded-[19px] bg-paper-raised">
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-brand/20 bg-brand-surface shadow-xs">
+              <Image
+                src="/logo_uagrm_activo_fijo.svg"
+                alt="UAGRM"
+                width={34}
+                height={34}
+                className="h-8 w-8 object-contain"
+              />
+            </div>
           </div>
-          <div className="absolute inset-0 -m-1 rounded-[18px] border-2 border-brand border-t-transparent animate-spin" />
         </div>
 
         <h3 className="text-sm font-bold text-ink font-serif tracking-tight text-center">
