@@ -1,13 +1,15 @@
 import { ReportColumn, ReportHeaderConfig, ReportPageConfig, ReportFilterCriterion } from './reportTypes';
+import { escaparHtml } from './sanitizar';
 
-export function openPrintReport<T>(
+export function construirHtmlReporte<T>(
   data: T[],
   columns: ReportColumn<T>[],
   headerConfig: ReportHeaderConfig,
   pageConfig: ReportPageConfig,
   filters: ReportFilterCriterion[],
   userLabel?: string,
-) {
+  now: Date = new Date(),
+): string {
   const paperSizeMap = {
     letter: 'letter',
     a4: 'a4',
@@ -29,7 +31,6 @@ export function openPrintReport<T>(
     });
   });
 
-  const now = new Date();
   const fechaEmision = now.toLocaleDateString('es-BO', {
     day: '2-digit',
     month: 'short',
@@ -44,7 +45,7 @@ export function openPrintReport<T>(
     .filter((f) => f.value && f.value !== 'TODOS' && f.value !== 'Todas')
     .map(
       (f) => `
-      <span class="filter-item"><strong>${f.label}:</strong> ${f.value}</span>
+      <span class="filter-item"><strong>${escaparHtml(f.label)}:</strong> ${escaparHtml(f.value)}</span>
     `,
     )
     .join(' ');
@@ -57,7 +58,7 @@ export function openPrintReport<T>(
     .map(
       (col) => `
       <th style="text-align: ${col.align || 'left'}; width: ${col.width || 'auto'};">
-        ${col.label}
+        ${escaparHtml(col.label)}
       </th>
     `,
     )
@@ -74,7 +75,7 @@ export function openPrintReport<T>(
           }
           return `
           <td style="text-align: ${col.align || 'left'};">
-            ${formatted}
+            ${escaparHtml(formatted)}
           </td>
         `;
         })
@@ -123,7 +124,7 @@ export function openPrintReport<T>(
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>${headerConfig.titulo} - UAGRM</title>
+  <title>${escaparHtml(headerConfig.titulo)} - UAGRM</title>
   <style>
     @page {
       size: ${cssPaperSize};
@@ -443,14 +444,14 @@ export function openPrintReport<T>(
         <div>SANTA CRUZ - BOLIVIA</div>
       </td>
       <td class="header-center">
-        <h1>${headerConfig.titulo}</h1>
-        <h2>${headerConfig.subtitulo}</h2>
-        <div class="gestion-tag">${headerConfig.gestion}</div>
+        <h1>${escaparHtml(headerConfig.titulo)}</h1>
+        <h2>${escaparHtml(headerConfig.subtitulo)}</h2>
+        <div class="gestion-tag">${escaparHtml(headerConfig.gestion)}</div>
       </td>
       <td class="header-right">
         <div>Emisión: ${fechaEmision} ${horaEmision}</div>
         <div>Folio Oficial: UAGRM-${now.getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}</div>
-        ${userLabel ? `<div>Operador: ${userLabel}</div>` : ''}
+        ${userLabel ? `<div>Operador: ${escaparHtml(userLabel)}</div>` : ''}
       </td>
     </tr>
   </table>
@@ -528,6 +529,18 @@ export function openPrintReport<T>(
 </body>
 </html>`;
 
+  return html;
+}
+
+export function openPrintReport<T>(
+  data: T[],
+  columns: ReportColumn<T>[],
+  headerConfig: ReportHeaderConfig,
+  pageConfig: ReportPageConfig,
+  filters: ReportFilterCriterion[],
+  userLabel?: string,
+) {
+  const html = construirHtmlReporte(data, columns, headerConfig, pageConfig, filters, userLabel);
   // Apertura mediante Blob URL para evitar la leyenda "about:blank" en la cabecera del navegador
   try {
     const htmlBlob = new Blob([html], { type: 'text/html;charset=utf-8' });

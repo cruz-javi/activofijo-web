@@ -1,20 +1,27 @@
 import * as XLSX from 'xlsx';
 import { ReportColumn, ReportHeaderConfig, ReportFilterCriterion } from './reportTypes';
+import { neutralizarFormula } from './sanitizar';
 
-export function generateExcel<T>(
+type CeldaExcel = string | number;
+
+export interface FilasExcel {
+  filas: CeldaExcel[][];
+  conFiltros: boolean;
+}
+
+export function construirFilasExcel<T>(
   data: T[],
   columns: ReportColumn<T>[],
   headerConfig: ReportHeaderConfig,
   filters: ReportFilterCriterion[],
-  filenamePrefix: string = 'reporte_uagrm',
-) {
-  const now = new Date();
-  const fechaEmision = now.toLocaleDateString('es-BO', {
+  ahora: Date = new Date(),
+): FilasExcel {
+  const fechaEmision = ahora.toLocaleDateString('es-BO', {
     day: '2-digit',
     month: 'short',
     year: 'numeric',
   });
-  const horaEmision = now.toLocaleTimeString('es-BO', {
+  const horaEmision = ahora.toLocaleTimeString('es-BO', {
     hour: '2-digit',
     minute: '2-digit',
   });
@@ -25,13 +32,13 @@ export function generateExcel<T>(
     .join('  |  ');
 
   // Construcción de matriz de filas (AOA: Array of Arrays)
-  const rows: any[][] = [];
+  const rows: CeldaExcel[][] = [];
 
   // 1. Membrete Institucional
   rows.push(['UNIVERSIDAD AUTÓNOMA GABRIEL RENÉ MORENO']);
   rows.push([headerConfig.subtitulo ? headerConfig.subtitulo.toUpperCase() : 'DEPARTAMENTO DE ACTIVO FIJO - SANTA CRUZ, BOLIVIA']);
   rows.push([headerConfig.titulo.toUpperCase()]);
-  rows.push([`${headerConfig.gestion}   •   Fecha de Emisión: ${fechaEmision} ${horaEmision}   •   Folio: UAGRM-${now.getFullYear()}`]);
+  rows.push([`${headerConfig.gestion}   •   Fecha de Emisión: ${fechaEmision} ${horaEmision}   •   Folio: UAGRM-${ahora.getFullYear()}`]);
   rows.push([]); // Fila vacía
 
   // 2. Filtros aplicados
@@ -49,7 +56,7 @@ export function generateExcel<T>(
 
   // 4. Filas de Datos
   data.forEach((item) => {
-    const rowValues = columns.map((col) => {
+    const rowValues = columns.map((col): CeldaExcel => {
       const rawVal = (item as any)[col.key];
 
       if (col.isNumeric) {
@@ -70,7 +77,7 @@ export function generateExcel<T>(
 
   // 5. Fila de Totales
   if (hasNumerics) {
-    const totalsRow = columns.map((col, idx) => {
+    const totalsRow = columns.map((col, idx): CeldaExcel => {
       if (idx === 0) {
         return `TOTAL (${data.length} registros)`;
       }
@@ -82,6 +89,20 @@ export function generateExcel<T>(
     });
     rows.push(totalsRow);
   }
+
+  const filas = rows.map((fila) => fila.map((celda) => (typeof celda === 'string' ? neutralizarFormula(celda) : celda)));
+  return { filas, conFiltros: Boolean(activeFilters) };
+}
+
+export function generateExcel<T>(
+  data: T[],
+  columns: ReportColumn<T>[],
+  headerConfig: ReportHeaderConfig,
+  filters: ReportFilterCriterion[],
+  filenamePrefix: string = 'reporte_uagrm',
+) {
+  const now = new Date();
+  const { filas: rows, conFiltros } = construirFilasExcel(data, columns, headerConfig, filters, now);
 
   // 6. Conversión a Hoja de Cálculo
   const ws = XLSX.utils.aoa_to_sheet(rows);
@@ -107,7 +128,7 @@ export function generateExcel<T>(
     { s: { r: 3, c: 0 }, e: { r: 3, c: lastColIndex } },
   ];
 
-  if (activeFilters) {
+  if (conFiltros) {
     merges.push({ s: { r: 5, c: 0 }, e: { r: 5, c: lastColIndex } });
   }
 
@@ -120,7 +141,7 @@ export function generateExcel<T>(
   const safeTitle = headerConfig.titulo
     .toLowerCase()
     .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[̀-ͯ]/g, '')
     .replace(/[^a-z0-9]+/g, '_')
     .replace(/^_|_$/g, '');
 
