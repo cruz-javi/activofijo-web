@@ -2,16 +2,15 @@
 
 import { 
   Archive, 
-  ClipboardList, 
-  MapPin, 
   Users, 
   ArrowRight, 
   ShieldCheck, 
-  FileText, 
   PlusCircle, 
   KeyRound, 
-  Scale, 
   Fingerprint,
+  Tag,
+  ClipboardList,
+  MapPin,
   LucideIcon 
 } from 'lucide-react';
 import Link from 'next/link';
@@ -28,59 +27,46 @@ interface ShortcutItem {
 
 const ALL_SHORTCUTS: ShortcutItem[] = [
   {
+    href: '/activos',
+    title: 'Catálogo de Activos',
+    description: 'Consultar inventario patrimonial y fichas técnicas',
+    icon: Archive,
+    permiso: 'activos:consultar',
+  },
+  {
     href: '/formularios/alta',
-    title: 'Nueva Alta',
-    description: 'Registrar un bien patrimonial nuevo',
+    title: 'Alta de Activos',
+    description: 'Incorporación formal de nuevos bienes al patrimonio',
     icon: PlusCircle,
     permiso: 'activos:crear',
   },
   {
-    href: '/asignaciones/nuevo',
-    title: 'Emitir Acta (PB-14)',
-    description: 'Generar acta formal de custodia',
-    icon: ClipboardList,
-    permiso: 'tramites:crear',
-  },
-  {
-    href: '/activos',
-    title: 'Catálogo de Activos',
-    description: 'Consultar el inventario patrimonial',
-    icon: Archive,
-    permiso: 'activos:leer',
-  },
-  {
-    href: '/asignaciones',
-    title: 'Mis Bienes Asignados',
-    description: 'Ver activos bajo mi custodia actual',
-    icon: FileText,
-    permiso: 'activos:leer',
+    href: '/etiquetas',
+    title: 'Identificadores y Etiquetas',
+    description: 'Generación e impresión de códigos QR y de barras',
+    icon: Tag,
+    permiso: 'etiquetas:gestionar',
   },
   {
     href: '/usuarios',
     title: 'Gestión de Usuarios',
-    description: 'Administración de cuentas institucionales',
+    description: 'Administración de cuentas y funcionarios',
     icon: Users,
     permiso: 'usuarios:gestionar',
   },
   {
     href: '/roles',
     title: 'Roles y Permisos',
-    description: 'Configurar perfiles y accesos dinámicos',
+    description: 'Configuración granular de perfiles y accesos',
     icon: KeyRound,
-    permiso: 'usuarios:gestionar',
+    permiso: 'roles:gestionar',
   },
   {
     href: '/auditoria',
     title: 'Bitácora del Sistema',
-    description: 'Registro forense de auditoría de accesos',
+    description: 'Registro forense de trazabilidad y eventos de seguridad',
     icon: Fingerprint,
-    permiso: 'usuarios:gestionar',
-  },
-  {
-    href: '/normativa',
-    title: 'Normativa D.S. 0181',
-    description: 'Marco legal y clasificador de bienes',
-    icon: Scale,
+    permiso: 'bitacora:consultar',
   },
 ];
 

@@ -81,7 +81,7 @@ function extractErrorMessage(errData: any, fallback: string): string {
 export default function UsuariosPage() {
   const router = useRouter();
   const toast = useToast();
-  const { user: currentUser, loading: loadingUser, isAdmin, roleLabel } = useCurrentUser();
+  const { user: currentUser, loading: loadingUser, isAdmin, hasPermiso, roleLabel } = useCurrentUser();
 
   const [usuarios, setUsuarios] = useState<UsuarioItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -158,12 +158,12 @@ export default function UsuariosPage() {
   };
 
   useEffect(() => {
-    if (isAdmin) {
+    if (isAdmin || hasPermiso('usuarios:gestionar')) {
       fetchUsuarios();
       fetchRolesList();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAdmin]);
+  }, [isAdmin, currentUser]);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -320,7 +320,7 @@ export default function UsuariosPage() {
   const paginaActual = Math.min(page, totalPaginas);
   const usuariosPagina = usuariosFiltrados.slice((paginaActual - 1) * PAGE_SIZE, paginaActual * PAGE_SIZE);
 
-  if (!loadingUser && !isAdmin) {
+  if (!loadingUser && !isAdmin && !hasPermiso('usuarios:gestionar')) {
     return (
       <div className="flex flex-col items-center justify-center p-8 sm:p-16 text-center max-w-xl mx-auto my-12 bg-paper-raised border border-border-soft rounded-2xl shadow-sm">
         <div className="h-16 w-16 rounded-2xl bg-danger-surface text-danger border border-danger/25 flex items-center justify-center mb-6">

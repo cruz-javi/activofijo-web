@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { 
   Archive, 
   LogOut, 
@@ -49,7 +49,7 @@ const NAV_ITEMS: NavItem[] = [
     label: 'Consultas', 
     icon: Archive,
     subItems: [
-      { href: '/activos', label: 'Catálogo de Activos', icon: Archive, requiredPermiso: 'activos:leer' },
+      { href: '/activos', label: 'Catálogo de Activos', icon: Archive, requiredPermiso: 'activos:consultar' },
     ]
   },
   {
@@ -57,14 +57,13 @@ const NAV_ITEMS: NavItem[] = [
     icon: FileSignature,
     subItems: [
       { href: '/formularios/alta', label: 'Alta de Activos', icon: FilePlus, requiredPermiso: 'activos:crear' },
-      { href: '/formularios/baja', label: 'Baja de Activos', icon: FileMinus, requiredPermiso: 'activos:baja' },
     ]
   },
   { 
     label: 'Codificación',
     icon: Tag,
     subItems: [
-      { href: '/etiquetas', label: 'Identificadores y Etiquetas', icon: Tag, requiredPermiso: 'activos:leer' },
+      { href: '/etiquetas', label: 'Identificadores y Etiquetas', icon: Tag, requiredPermiso: 'etiquetas:gestionar' },
     ]
   },
   {
@@ -72,8 +71,8 @@ const NAV_ITEMS: NavItem[] = [
     icon: Shield,
     subItems: [
       { href: '/usuarios', label: 'Usuarios y Accesos', icon: Users, requiredPermiso: 'usuarios:gestionar' },
-      { href: '/roles', label: 'Roles y Permisos', icon: KeyRound, requiredPermiso: 'usuarios:gestionar' },
-      { href: '/auditoria', label: 'Bitácora del Sistema', icon: Fingerprint, requiredPermiso: 'usuarios:gestionar' },
+      { href: '/roles', label: 'Roles y Permisos', icon: KeyRound, requiredPermiso: 'roles:gestionar' },
+      { href: '/auditoria', label: 'Bitácora del Sistema', icon: Fingerprint, requiredPermiso: 'bitacora:consultar' },
     ]
   },
 ];
@@ -88,12 +87,42 @@ export function Sidebar({ isOpenMobile, onCloseMobile }: SidebarProps) {
   const router = useRouter();
   const { user, isAdmin, hasPermiso, hasRole, roleLabel } = useCurrentUser();
   
-  // Submenús inician colapsados tanto en Desktop como en Mobile
+  // Submenús inician colapsados, pero se expanden automáticamente si la ruta activa pertenece a un submenú
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
+
+  // Filtrado estricto: Las opciones no permitidas NO se muestran al usuario
+  const visibleNavItems = useMemo(() => {
+    return NAV_ITEMS.map((item) => {
+      if (item.subItems) {
+        const allowedSubs = item.subItems.filter((sub) => {
+          if (isAdmin) return true;
+          const passPerm = !sub.requiredPermiso || hasPermiso(sub.requiredPermiso);
+          const passRole = !sub.requiredRole || hasRole(sub.requiredRole);
+          return passPerm && passRole;
+        });
+        if (allowedSubs.length === 0) return null;
+        return { ...item, subItems: allowedSubs };
+      }
+
+      if (isAdmin) return item;
+      const passPerm = !item.requiredPermiso || hasPermiso(item.requiredPermiso);
+      const passRole = !item.requiredRole || hasRole(item.requiredRole);
+      return passPerm && passRole ? item : null;
+    }).filter(Boolean) as NavItem[];
+  }, [isAdmin, user]);
+
+  // Auto-expandir el grupo al que pertenece la ruta actual para mejor orientación visual
+  useEffect(() => {
+    visibleNavItems.forEach((item) => {
+      if (item.subItems && item.subItems.some((sub) => pathname.startsWith(sub.href))) {
+        setExpanded((prev) => (prev[item.label] ? prev : { ...prev, [item.label]: true }));
+      }
+    });
+  }, [pathname, visibleNavItems]);
 
   const toggleExpand = (label: string) => {
     setExpanded(prev => ({ ...prev, [label]: !prev[label] }));
@@ -111,25 +140,6 @@ export function Sidebar({ isOpenMobile, onCloseMobile }: SidebarProps) {
       router.refresh();
     }
   };
-
-  // Filtrado estricto: Las opciones no permitidas NO se muestran al usuario
-  const visibleNavItems = NAV_ITEMS.map((item) => {
-    if (item.subItems) {
-      const allowedSubs = item.subItems.filter((sub) => {
-        if (isAdmin) return true;
-        const passPerm = !sub.requiredPermiso || hasPermiso(sub.requiredPermiso);
-        const passRole = !sub.requiredRole || hasRole(sub.requiredRole);
-        return passPerm && passRole;
-      });
-      if (allowedSubs.length === 0) return null;
-      return { ...item, subItems: allowedSubs };
-    }
-
-    if (isAdmin) return item;
-    const passPerm = !item.requiredPermiso || hasPermiso(item.requiredPermiso);
-    const passRole = !item.requiredRole || hasRole(item.requiredRole);
-    return passPerm && passRole ? item : null;
-  }).filter(Boolean) as NavItem[];
 
   const renderLink = (item: { href: string; label: string; icon: LucideIcon }, isSub: boolean = false) => {
     const active = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href));

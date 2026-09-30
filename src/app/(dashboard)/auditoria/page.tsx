@@ -106,7 +106,7 @@ const PAGE_SIZE = 20;
 
 export default function BitacoraPage() {
   const router = useRouter();
-  const { user: currentUser, loading: loadingUser, isAdmin, roleLabel } = useCurrentUser();
+  const { user: currentUser, loading: loadingUser, isAdmin, hasPermiso, roleLabel } = useCurrentUser();
 
   const [items, setItems] = useState<AuditItem[]>([]);
   const [total, setTotal] = useState(0);
@@ -161,11 +161,11 @@ export default function BitacoraPage() {
   };
 
   useEffect(() => {
-    if (isAdmin) {
+    if (isAdmin || hasPermiso('bitacora:consultar')) {
       fetchBitacora();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAdmin, accion, modulo, resultado, page]);
+  }, [isAdmin, currentUser, accion, modulo, resultado, page]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -227,7 +227,7 @@ export default function BitacoraPage() {
     { label: 'Resultado', value: resultado },
   ];
 
-  if (!loadingUser && !isAdmin) {
+  if (!loadingUser && !isAdmin && !hasPermiso('bitacora:consultar')) {
     return (
       <div className="flex flex-col items-center justify-center p-8 sm:p-16 text-center max-w-xl mx-auto my-12 bg-paper-raised border border-border-soft rounded-2xl shadow-sm">
         <div className="h-16 w-16 rounded-2xl bg-danger-surface text-danger border border-danger/25 flex items-center justify-center mb-6">

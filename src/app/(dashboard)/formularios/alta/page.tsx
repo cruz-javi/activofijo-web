@@ -20,7 +20,9 @@ import {
   AlertCircle,
   Truck,
   Wrench,
-  Hash
+  Hash,
+  ShieldAlert,
+  ArrowLeft
 } from 'lucide-react';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Button } from '@/components/ui/Button';
@@ -31,6 +33,7 @@ import { Badge } from '@/components/ui/Badge';
 import { useToast } from '@/components/ui/Toast';
 import { PasswordConfirmModal } from '@/components/ui/PasswordConfirmModal';
 import { AltaExitoModal } from '@/components/ui/AltaExitoModal';
+import { useCurrentUser } from '@/lib/hooks/useCurrentUser';
 
 interface MetadataResponse {
   grupos: Array<{ codGrupo: number; desGrupo: string }>;
@@ -49,6 +52,7 @@ interface MetadataResponse {
 export default function AltaActivosPage() {
   const router = useRouter();
   const { show } = useToast();
+  const { user: currentUser, loading: loadingUser, isAdmin, hasPermiso, roleLabel } = useCurrentUser();
 
   // Estados de carga de metadatos
   const [loadingMetadata, setLoadingMetadata] = useState(true);
@@ -308,6 +312,26 @@ export default function AltaActivosPage() {
     }
     setIsSuccessModalOpen(false);
   };
+
+  if (!loadingUser && !isAdmin && !hasPermiso('activos:crear')) {
+    return (
+      <div className="flex flex-col items-center justify-center p-8 sm:p-16 text-center max-w-xl mx-auto my-12 bg-paper-raised border border-border-soft rounded-2xl shadow-sm">
+        <div className="h-16 w-16 rounded-2xl bg-danger-surface text-danger border border-danger/25 flex items-center justify-center mb-6">
+          <ShieldAlert className="h-8 w-8" />
+        </div>
+        <h2 className="text-xl font-bold font-serif text-ink tracking-tight mb-2">
+          Acceso Restringido a Registro de Activos
+        </h2>
+        <p className="text-sm text-ink-secondary mb-4 leading-relaxed">
+          Su rol actual (<strong className="text-ink font-semibold">{roleLabel}</strong>) no tiene autorización para dar de alta nuevos bienes patrimoniales.
+        </p>
+        <Button onClick={() => router.push('/dashboard')} className="inline-flex items-center gap-2">
+          <ArrowLeft className="h-4 w-4" />
+          <span>Volver al Inicio</span>
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 pb-12 animate-in fade-in duration-300">

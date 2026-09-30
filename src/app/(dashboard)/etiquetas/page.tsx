@@ -20,7 +20,8 @@ import {
   Copy,
   ExternalLink,
   FileText,
-  Info
+  Info,
+  ArrowLeft
 } from 'lucide-react';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Button } from '@/components/ui/Button';
@@ -41,10 +42,10 @@ function EtiquetasContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { show } = useToast();
-  const { isAdmin, hasRole } = useCurrentUser();
+  const { user: currentUser, loading: loadingUser, isAdmin, hasRole, hasPermiso, roleLabel } = useCurrentUser();
 
   // Permiso para administrar plantillas
-  const canManageTemplates = isAdmin || hasRole('JEFE_ACTIVO_FIJO') || hasRole('ADMINISTRADOR');
+  const canManageTemplates = isAdmin || hasRole('JEFE_ACTIVO_FIJO') || hasRole('ADMINISTRADOR') || hasPermiso('etiquetas:gestionar');
 
   // Pestaña activa: 'lotes' | 'reponer' | 'plantillas'
   const [activeTab, setActiveTab] = useState<'lotes' | 'reponer' | 'plantillas'>('lotes');
@@ -293,6 +294,26 @@ function EtiquetasContent() {
       show('Error al eliminar plantilla', 'danger');
     }
   };
+
+  if (!loadingUser && !isAdmin && !hasPermiso('etiquetas:gestionar')) {
+    return (
+      <div className="flex flex-col items-center justify-center p-8 sm:p-16 text-center max-w-xl mx-auto my-12 bg-paper-raised border border-border-soft rounded-2xl shadow-sm">
+        <div className="h-16 w-16 rounded-2xl bg-danger-surface text-danger border border-danger/25 flex items-center justify-center mb-6">
+          <ShieldAlert className="h-8 w-8" />
+        </div>
+        <h2 className="text-xl font-bold font-serif text-ink tracking-tight mb-2">
+          Acceso Restringido a Identificadores y Etiquetas
+        </h2>
+        <p className="text-sm text-ink-secondary mb-4 leading-relaxed">
+          Su rol actual (<strong className="text-ink font-semibold">{roleLabel}</strong>) no tiene autorización para generar ni gestionar etiquetas de bienes patrimoniales.
+        </p>
+        <Button onClick={() => router.push('/dashboard')} className="inline-flex items-center gap-2">
+          <ArrowLeft className="h-4 w-4" />
+          <span>Volver al Inicio</span>
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 pb-12 animate-in fade-in duration-300">

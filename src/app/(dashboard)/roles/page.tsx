@@ -46,10 +46,16 @@ interface RoleItem {
   creadoEn: string;
 }
 
+const MODULO_TITLES: Record<string, string> = {
+  IDENTIDAD_ACCESO: 'Seguridad, Identidad y Accesos',
+  PATRIMONIO: 'Gestión Patrimonial de Activos',
+  CODIFICACION: 'Codificación e Impresión de Etiquetas',
+};
+
 export default function RolesPage() {
   const router = useRouter();
   const toast = useToast();
-  const { user: currentUser, loading: loadingUser, isAdmin, roleLabel } = useCurrentUser();
+  const { user: currentUser, loading: loadingUser, isAdmin, hasPermiso, roleLabel } = useCurrentUser();
 
   const [roles, setRoles] = useState<RoleItem[]>([]);
   const [permisosCatalogo, setPermisosCatalogo] = useState<Record<string, PermisoItem[]>>({});
@@ -87,7 +93,7 @@ export default function RolesPage() {
         return;
       }
       if (resRoles.status === 403 || resPermisos.status === 403) {
-        setError('Acceso denegado: solo el Administrador del Sistema puede gestionar roles y permisos.');
+        setError('Acceso denegado: solo usuarios con permiso de gestión de roles pueden consultar esta sección.');
         setRoles([]);
         return;
       }
@@ -107,11 +113,11 @@ export default function RolesPage() {
   };
 
   useEffect(() => {
-    if (isAdmin) {
+    if (isAdmin || hasPermiso('roles:gestionar')) {
       fetchRolesData();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAdmin]);
+  }, [isAdmin, currentUser]);
 
   const togglePermisoSelection = (pId: string, isCreate: boolean) => {
     if (isCreate) {
@@ -247,7 +253,7 @@ export default function RolesPage() {
     }
   };
 
-  if (!loadingUser && !isAdmin) {
+  if (!loadingUser && !isAdmin && !hasPermiso('roles:gestionar')) {
     return (
       <div className="flex flex-col items-center justify-center p-8 sm:p-16 text-center max-w-xl mx-auto my-12 bg-paper-raised border border-border-soft rounded-2xl shadow-sm">
         <div className="h-16 w-16 rounded-2xl bg-danger-surface text-danger border border-danger/25 flex items-center justify-center mb-6">
@@ -494,7 +500,10 @@ export default function RolesPage() {
                     return (
                       <div key={modulo} className="p-3.5 rounded-xl bg-paper border border-border-soft">
                         <div className="flex items-center justify-between mb-2.5 pb-2 border-b border-border-soft">
-                          <span className="font-bold text-xs text-ink font-mono">{modulo}</span>
+                          <div className="flex flex-col">
+                            <span className="font-bold text-xs text-ink">{MODULO_TITLES[modulo] || modulo}</span>
+                            <span className="text-[10px] font-mono text-ink-tertiary">{modulo}</span>
+                          </div>
                           <button
                             type="button"
                             onClick={() => toggleModuloPermisos(modulo, true)}
@@ -629,7 +638,10 @@ export default function RolesPage() {
                     return (
                       <div key={modulo} className="p-3.5 rounded-xl bg-paper border border-border-soft">
                         <div className="flex items-center justify-between mb-2.5 pb-2 border-b border-border-soft">
-                          <span className="font-bold text-xs text-ink font-mono">{modulo}</span>
+                          <div className="flex flex-col">
+                            <span className="font-bold text-xs text-ink">{MODULO_TITLES[modulo] || modulo}</span>
+                            <span className="text-[10px] font-mono text-ink-tertiary">{modulo}</span>
+                          </div>
                           <button
                             type="button"
                             onClick={() => toggleModuloPermisos(modulo, false)}

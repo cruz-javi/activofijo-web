@@ -22,8 +22,11 @@ import {
   Hash,
   Layers,
   MapPin,
-  Laptop
+  Laptop,
+  ShieldAlert,
+  ArrowLeft
 } from 'lucide-react';
+import { useCurrentUser } from '@/lib/hooks/useCurrentUser';
 import { AssetTag } from '@/components/AssetTag';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
@@ -122,6 +125,7 @@ function ActivosContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const toast = useToast();
+  const { user: currentUser, loading: loadingUser, isAdmin, hasPermiso, roleLabel } = useCurrentUser();
 
   // Estados de datos
   const [activos, setActivos] = useState<ActivoItem[]>([]);
@@ -325,6 +329,26 @@ function ActivosContent() {
     { label: 'Estado', value: estadoFilter },
     { label: 'Grupo Contable', value: grupoFilter },
   ], [search, codigoFilter, unidadFilter, custodioFilter, estadoFilter, grupoFilter]);
+
+  if (!loadingUser && !isAdmin && !hasPermiso('activos:consultar')) {
+    return (
+      <div className="flex flex-col items-center justify-center p-8 sm:p-16 text-center max-w-xl mx-auto my-12 bg-paper-raised border border-border-soft rounded-2xl shadow-sm">
+        <div className="h-16 w-16 rounded-2xl bg-danger-surface text-danger border border-danger/25 flex items-center justify-center mb-6">
+          <ShieldAlert className="h-8 w-8" />
+        </div>
+        <h2 className="text-xl font-bold font-serif text-ink tracking-tight mb-2">
+          Acceso Restringido a Catálogo
+        </h2>
+        <p className="text-sm text-ink-secondary mb-4 leading-relaxed">
+          Su rol actual (<strong className="text-ink font-semibold">{roleLabel}</strong>) no tiene autorización para consultar el inventario de bienes patrimoniales.
+        </p>
+        <Button onClick={() => router.push('/dashboard')} className="inline-flex items-center gap-2">
+          <ArrowLeft className="h-4 w-4" />
+          <span>Volver al Inicio</span>
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <>
