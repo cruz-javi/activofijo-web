@@ -8,7 +8,21 @@ interface GraficoEstadosDonutProps {
   porcentajeOperativos: number;
 }
 
-const COLOR_MAP: Record<string, { stroke: string; bg: string; text: string; dot: string }> = {
+interface ColorScheme {
+  stroke: string;
+  bg: string;
+  text: string;
+  dot: string;
+}
+
+const DEFAULT_COLOR: ColorScheme = {
+  stroke: '#94A3B8',
+  bg: 'bg-slate-100',
+  text: 'text-slate-600',
+  dot: 'bg-slate-400',
+};
+
+const COLOR_MAP: Record<string, ColorScheme> = {
   brand: {
     stroke: '#B91C1C',
     bg: 'bg-brand-surface',
@@ -56,7 +70,7 @@ export function GraficoEstadosDonut({ estados, porcentajeOperativos }: GraficoEs
     const strokeDasharray = `${fraction * circumference} ${circumference * (1 - fraction)}`;
     const strokeDashoffset = -accumulatedPercent * circumference;
     accumulatedPercent += fraction;
-    const colors = COLOR_MAP[item.colorTone] || COLOR_MAP.neutral;
+    const colors: ColorScheme = (item.colorTone && COLOR_MAP[item.colorTone]) ? COLOR_MAP[item.colorTone]! : DEFAULT_COLOR;
 
     return {
       ...item,
@@ -118,7 +132,7 @@ export function GraficoEstadosDonut({ estados, porcentajeOperativos }: GraficoEs
                     cx="80"
                     cy="80"
                     r={radius}
-                    stroke={seg.colors.stroke}
+                    stroke={seg.colors?.stroke || DEFAULT_COLOR.stroke}
                     strokeWidth={strokeWidth}
                     fill="transparent"
                     strokeDasharray={seg.strokeDasharray}
@@ -149,7 +163,7 @@ export function GraficoEstadosDonut({ estados, porcentajeOperativos }: GraficoEs
                 >
                   <div className="flex items-center gap-2 truncate">
                     <span
-                      className={`h-2.5 w-2.5 rounded-full shrink-0 ${item.colors.dot}`}
+                      className={`h-2.5 w-2.5 rounded-full shrink-0 ${item.colors?.dot || DEFAULT_COLOR.dot}`}
                     />
                     <span className="font-medium text-ink truncate">
                       {item.estado}
