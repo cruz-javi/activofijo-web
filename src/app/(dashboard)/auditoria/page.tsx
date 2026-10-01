@@ -309,11 +309,20 @@ export default function BitacoraPage() {
               <option value="TODOS">Todas las acciones</option>
               <option value="LOGIN">LOGIN (Autenticación)</option>
               <option value="LOGOUT">LOGOUT (Cierre de Sesión)</option>
+              <option value="STEPUP_2FA">STEPUP_2FA (Elevación 2FA)</option>
+              <option value="OMITIR_2FA_INICIAL">OMITIR_2FA_INICIAL</option>
+              <option value="REINICIAR_2FA">REINICIAR_2FA (Recuperación Admin)</option>
               <option value="CREAR_USUARIO">CREAR_USUARIO</option>
               <option value="ACTUALIZAR_USUARIO">ACTUALIZAR_USUARIO</option>
               <option value="CREAR_ROL">CREAR_ROL</option>
               <option value="ACTUALIZAR_ROL">ACTUALIZAR_ROL</option>
               <option value="ELIMINAR_ROL">ELIMINAR_ROL</option>
+              <option value="ALTA_ACTIVO">ALTA_ACTIVO (Incorporación)</option>
+              <option value="GENERAR_ETIQUETAS_LOTE">GENERAR_ETIQUETAS_LOTE</option>
+              <option value="REPOSICION_ETIQUETA">REPOSICION_ETIQUETA</option>
+              <option value="CREAR_PLANTILLA_ETIQUETA">CREAR_PLANTILLA_ETIQUETA</option>
+              <option value="ACTUALIZAR_PLANTILLA_ETIQUETA">ACTUALIZAR_PLANTILLA_ETIQUETA</option>
+              <option value="ELIMINAR_PLANTILLA_ETIQUETA">ELIMINAR_PLANTILLA_ETIQUETA</option>
             </Select>
           </div>
 
@@ -351,10 +360,9 @@ export default function BitacoraPage() {
             >
               <option value="TODOS">Todos los módulos</option>
               <option value="IDENTIDAD_ACCESO">IDENTIDAD_ACCESO</option>
+              <option value="AUTENTICACION">AUTENTICACION</option>
               <option value="PATRIMONIO">PATRIMONIO</option>
-              <option value="TRAMITES">TRAMITES</option>
-              <option value="INSPECCION">INSPECCION</option>
-              <option value="SINCRONIZACION">SINCRONIZACION</option>
+              <option value="ETIQUETAS">ETIQUETAS</option>
             </Select>
           </div>
         </form>
