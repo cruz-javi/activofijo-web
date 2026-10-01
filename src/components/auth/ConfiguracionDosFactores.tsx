@@ -12,6 +12,8 @@ import { CodigosRespaldoPanel } from './CodigosRespaldoPanel';
 interface ConfiguracionDosFactoresProps {
   endpoints: { configurar: string; activar: string };
   etiquetaContinuar?: string;
+  obligatorio?: boolean;
+  onOmitir?: () => void;
   onCompletado: () => void;
   onCancelar?: () => void;
 }
@@ -25,6 +27,8 @@ function agruparClave(secreto: string): string {
 export function ConfiguracionDosFactores({
   endpoints,
   etiquetaContinuar,
+  obligatorio = false,
+  onOmitir,
   onCompletado,
   onCancelar,
 }: ConfiguracionDosFactoresProps) {
@@ -92,6 +96,15 @@ export function ConfiguracionDosFactores({
 
   return (
     <div className="space-y-5">
+      {obligatorio && (
+        <div className="p-3 rounded-xl border border-brand/25 bg-brand-surface/50 text-brand text-xs flex items-start gap-2.5">
+          <ShieldAlert className="h-4 w-4 shrink-0 mt-0.5" />
+          <p className="leading-relaxed">
+            Su rol institucional requiere <strong className="font-semibold">verificación en dos pasos obligatoria</strong> para acceder al sistema.
+          </p>
+        </div>
+      )}
+
       {error && (
         <div role="alert" className="p-3.5 rounded-xl border border-danger/25 bg-danger-surface text-danger text-xs leading-relaxed flex items-start gap-2.5">
           <ShieldAlert className="h-4 w-4 shrink-0 mt-0.5" />
@@ -117,22 +130,28 @@ export function ConfiguracionDosFactores({
           <span className="h-6 w-6 shrink-0 rounded-full bg-brand-surface text-brand text-xs font-bold flex items-center justify-center">2</span>
           <div className="flex-1">
             <p className="leading-relaxed mb-3">Escanee este código QR desde la aplicación.</p>
-            <div
-              className="flex items-center justify-center rounded-xl border border-border-soft bg-white"
-              style={{ width: TAMANO_QR + 24, height: TAMANO_QR + 24 }}
-            >
-              {cargando || !configuracion ? (
-                <div className="animate-pulse rounded-lg bg-border-soft" style={{ width: TAMANO_QR, height: TAMANO_QR }} aria-label="Preparando código QR" />
-              ) : (
-                <QRCodeSVG value={configuracion.otpauthUri} size={TAMANO_QR} marginSize={0} title="Código QR de verificación" />
+            <div className="flex flex-col items-center justify-center my-2 text-center">
+              <div
+                className="flex items-center justify-center rounded-2xl border border-border-soft bg-white shadow-xs p-3 transition-transform hover:scale-[1.02]"
+                style={{ width: TAMANO_QR + 24, height: TAMANO_QR + 24 }}
+              >
+                {cargando || !configuracion ? (
+                  <div className="animate-pulse rounded-xl bg-border-soft" style={{ width: TAMANO_QR, height: TAMANO_QR }} aria-label="Preparando código QR" />
+                ) : (
+                  <QRCodeSVG value={configuracion.otpauthUri} size={TAMANO_QR} marginSize={0} title="Código QR de verificación" />
+                )}
+              </div>
+              {configuracion && (
+                <div className="mt-3 max-w-sm text-center">
+                  <p className="text-xs text-ink-tertiary leading-relaxed">
+                    ¿No puede escanearlo? Ingrese esta clave manualmente:
+                  </p>
+                  <span className="inline-block mt-1 font-mono text-xs font-semibold tabular-nums text-ink bg-paper px-2.5 py-1 rounded-md border border-border-soft break-all select-all">
+                    {agruparClave(configuracion.secreto)}
+                  </span>
+                </div>
               )}
             </div>
-            {configuracion && (
-              <p className="mt-3 text-xs text-ink-tertiary leading-relaxed">
-                ¿No puede escanearlo? Ingrese esta clave manualmente:{' '}
-                <span className="font-mono tabular-nums text-ink break-all select-all">{agruparClave(configuracion.secreto)}</span>
-              </p>
-            )}
           </div>
         </li>
         <li className="flex gap-3">
@@ -170,6 +189,19 @@ export function ConfiguracionDosFactores({
           </form>
         </li>
       </ol>
+
+      {!obligatorio && onOmitir && (
+        <div className="pt-2 text-center border-t border-border-soft">
+          <button
+            type="button"
+            onClick={onOmitir}
+            disabled={confirmando}
+            className="text-xs text-ink-secondary hover:text-brand hover:underline cursor-pointer font-medium py-1 px-3 rounded-lg hover:bg-paper transition-colors"
+          >
+            Omitir por ahora (Continuar al sistema sin 2FA)
+          </button>
+        </div>
+      )}
     </div>
   );
 }

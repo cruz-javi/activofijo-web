@@ -61,4 +61,10 @@ async function handleProxy(req: NextRequest, { params }: { params: Promise<{ pat
   });
 }
 
-export { handleProxy as GET, handleProxy as POST, handleProxy as PATCH, handleProxy as DELETE };
+export { 
+  handleProxy as GET, 
+  handleProxy as POST, 
+  handleProxy as PUT, 
+  handleProxy as PATCH, 
+  handleProxy as DELETE 
+};

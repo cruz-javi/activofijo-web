@@ -22,7 +22,8 @@ import {
   Wrench,
   Hash,
   ShieldAlert,
-  ArrowLeft
+  ArrowLeft,
+  Clock
 } from 'lucide-react';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Button } from '@/components/ui/Button';
@@ -31,9 +32,11 @@ import { Select } from '@/components/ui/Select';
 import { Field } from '@/components/ui/Field';
 import { Badge } from '@/components/ui/Badge';
 import { useToast } from '@/components/ui/Toast';
-import { PasswordConfirmModal } from '@/components/ui/PasswordConfirmModal';
+import { TwoFactorConfirmModal } from '@/components/ui/TwoFactorConfirmModal';
+import { ModalActivar2faRequerido } from '@/components/ui/ModalActivar2faRequerido';
 import { AltaExitoModal } from '@/components/ui/AltaExitoModal';
 import { useCurrentUser } from '@/lib/hooks/useCurrentUser';
+import { useStepUp } from '@/lib/hooks/useStepUp';
 
 interface MetadataResponse {
   grupos: Array<{ codGrupo: number; desGrupo: string }>;
@@ -100,13 +103,17 @@ export default function AltaActivosPage() {
   const [anioFabricacion, setAnioFabricacion] = useState<string>(new Date().getFullYear().toString());
   const [cilindrada, setCilindrada] = useState('');
 
-  // Modales
-  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+  // Modales de Seguridad y Confirmación
+  const [isTwoFactorModalOpen, setIsTwoFactorModalOpen] = useState(false);
+  const [isActivar2faModalOpen, setIsActivar2faModalOpen] = useState(false);
+  const [twoFactorError, setTwoFactorError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [passwordError, setPasswordError] = useState<string | null>(null);
 
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
   const [createdActivoData, setCreatedActivoData] = useState<any>(null);
+
+  // Hook de Step-Up 2FA (Ventana de gracia de 5 minutos)
+  const { activo: isStepUpActive, token: stepUpToken, tiempoFormateado } = useStepUp();
 
   // Carga inicial de metadatos desde el backend
   useEffect(() => {
@@ -196,15 +203,27 @@ export default function AltaActivosPage() {
       return;
     }
 
-    // Abrir modal de seguridad de re-autenticación
-    setPasswordError(null);
-    setIsPasswordModalOpen(true);
+    // 1. Si el usuario no tiene 2FA configurado en su cuenta (p. ej. lo omitió en el login):
+    if (currentUser && currentUser.dosFactoresActivo === false) {
+      setIsActivar2faModalOpen(true);
+      return;
+    }
+
+    // 2. Si ya cuenta con firma Step-Up vigente (5 minutos de gracia sin interrupciones):
+    if (isStepUpActive && stepUpToken) {
+      handleEjecutarAlta(stepUpToken);
+      return;
+    }
+
+    // 3. De lo contrario, abrir modal de seguridad TOTP 2FA
+    setTwoFactorError(null);
+    setIsTwoFactorModalOpen(true);
   };
 
-  // Confirmación y envío con contraseña
-  const handleConfirmAlta = async (password: string) => {
+  // Confirmación y envío con firma criptográfica Step-Up 2FA
+  const handleEjecutarAlta = async (tokenParaStepUp: string) => {
     setIsSubmitting(true);
-    setPasswordError(null);
+    setTwoFactorError(null);
 
     const grupoObj = metadata?.grupos.find((g) => g.codGrupo === Number(codGrupo));
     const oficinaObj = metadata?.oficinas.find((o) => o.codOfic === Number(codOfic));
@@ -253,7 +272,7 @@ export default function AltaActivosPage() {
       color: esVehiculo ? color.trim() : undefined,
       anioFabricacion: esVehiculo && anioFabricacion ? parseInt(anioFabricacion, 10) : undefined,
       cilindrada: esVehiculo ? cilindrada.trim() : undefined,
-      passwordConfirm: password,
+      stepUpToken: tokenParaStepUp,
     };
 
     try {
@@ -267,13 +286,13 @@ export default function AltaActivosPage() {
 
       if (!res.ok) {
         const errorMsg = data?.message || 'Error al procesar el registro de activo';
-        setPasswordError(errorMsg);
+        setTwoFactorError(errorMsg);
         show(errorMsg, 'danger');
         return;
       }
 
-      // Éxito: Cerrar modal de contraseña y abrir modal de éxito con QR
-      setIsPasswordModalOpen(false);
+      // Éxito: Cerrar modal 2FA y abrir modal de éxito con QR
+      setIsTwoFactorModalOpen(false);
       setCreatedActivoData({
         ...data.data,
         ubicacion: oficinaObj?.desDpto,
@@ -282,7 +301,7 @@ export default function AltaActivosPage() {
       setIsSuccessModalOpen(true);
       show('¡Activo registrado y firmado con éxito!', 'success');
     } catch (err: any) {
-      setPasswordError(err?.message || 'Error de conexión con el servidor');
+      setTwoFactorError(err?.message || 'Error de conexión con el servidor');
       show('Error de comunicación con el servidor institucional', 'danger');
     } finally {
       setIsSubmitting(false);
@@ -874,6 +893,13 @@ export default function AltaActivosPage() {
           </Button>
 
           <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
+            {isStepUpActive && (
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/25 text-emerald-700 dark:text-emerald-400 text-xs font-semibold">
+                <Clock className="h-3.5 w-3.5 animate-pulse text-emerald-600" />
+                <span>Firma 2FA Activa ({tiempoFormateado})</span>
+              </div>
+            )}
+
             <Button
               type="button"
               variant="secondary"
@@ -885,22 +911,22 @@ export default function AltaActivosPage() {
             <Button
               type="submit"
               variant="primary"
-              className="gap-2 px-6 shadow-sm"
+              className="gap-2 px-6 shadow-sm cursor-pointer"
             >
               <ShieldCheck className="h-4 w-4" />
-              Firmar y Dar de Alta Activo
+              {isStepUpActive ? 'Firmar y Registrar Activo' : 'Verificar 2FA y Dar de Alta'}
             </Button>
           </div>
         </div>
       </form>
 
-      {/* Modal de Re-autenticación obligatoria (Step-up Security) */}
-      <PasswordConfirmModal
-        isOpen={isPasswordModalOpen}
-        onClose={() => setIsPasswordModalOpen(false)}
-        onConfirm={handleConfirmAlta}
+      {/* Modal de Firma de Seguridad TOTP 2FA (Step-up Security) */}
+      <TwoFactorConfirmModal
+        isOpen={isTwoFactorModalOpen}
+        onClose={() => setIsTwoFactorModalOpen(false)}
+        onConfirm={handleEjecutarAlta}
         isLoading={isSubmitting}
-        errorMessage={passwordError}
+        errorMessage={twoFactorError}
         assetSummary={{
           codigo: codigo || 'SIN CÓDIGO',
           descripcion: descripcion || 'Sin descripción',
@@ -909,6 +935,16 @@ export default function AltaActivosPage() {
           responsable: metadata?.empleados?.find((e) => e.codEmp === Number(codEmp))
             ? `${metadata.empleados.find((e) => e.codEmp === Number(codEmp))?.nombres} ${metadata.empleados.find((e) => e.codEmp === Number(codEmp))?.apellidos}`
             : undefined,
+        }}
+      />
+
+      {/* Modal de Activación de 2FA requerida si el usuario omitió en el login */}
+      <ModalActivar2faRequerido
+        isOpen={isActivar2faModalOpen}
+        onClose={() => setIsActivar2faModalOpen(false)}
+        onSuccess={() => {
+          setIsActivar2faModalOpen(false);
+          setIsTwoFactorModalOpen(true);
         }}
       />
 

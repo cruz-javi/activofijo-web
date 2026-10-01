@@ -33,6 +33,7 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [paso, setPaso] = useState<PasoLogin>('credenciales');
+  const [es2faObligatorio, setEs2faObligatorio] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -41,6 +42,7 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
       setIdentificador('');
       setPassword('');
       setPaso('credenciales');
+      setEs2faObligatorio(false);
       const timer = setTimeout(() => inputRef.current?.focus(), 50);
       return () => clearTimeout(timer);
     }
@@ -70,6 +72,23 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
     setPaso('credenciales');
   };
 
+  const handleOmitir2fa = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const res = await fetch('/api/auth/2fa/inicial/omitir', { method: 'POST' });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.message || 'No fue posible omitir la verificación');
+      }
+      finalizarAcceso();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Error al omitir la verificación');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -95,6 +114,7 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
         return;
       }
       if (data.requiereConfiguracion2fa) {
+        setEs2faObligatorio(Boolean(data.obligatorio));
         setPaso('configuracion');
         return;
       }
@@ -156,6 +176,8 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
             <ConfiguracionDosFactores
               endpoints={ENDPOINTS_CONFIGURACION_INICIAL}
               etiquetaContinuar="Continuar al sistema"
+              obligatorio={es2faObligatorio}
+              onOmitir={!es2faObligatorio ? handleOmitir2fa : undefined}
               onCompletado={finalizarAcceso}
               onCancelar={volverACredenciales}
             />

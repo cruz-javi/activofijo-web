@@ -27,6 +27,7 @@ export async function POST(request: Request) {
         success: true,
         requiere2fa: 'requiere2fa' in data,
         requiereConfiguracion2fa: 'requiereConfiguracion2fa' in data,
+        obligatorio: 'obligatorio' in data ? Boolean((data as any).obligatorio) : false,
       });
     }
 

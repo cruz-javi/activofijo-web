@@ -40,6 +40,7 @@ interface RoleItem {
   nombre: string;
   descripcion: string;
   esSistema: boolean;
+  requiereDosPasos?: boolean;
   totalUsuarios: number;
   permisos: PermisoItem[];
   permisosIds: string[];
@@ -68,6 +69,7 @@ export default function RolesPage() {
   const [newId, setNewId] = useState('');
   const [newNombre, setNewNombre] = useState('');
   const [newDescripcion, setNewDescripcion] = useState('');
+  const [newRequiereDosPasos, setNewRequiereDosPasos] = useState(false);
   const [newSelectedPermisos, setNewSelectedPermisos] = useState<string[]>([]);
   const [createSaving, setCreateSaving] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
@@ -76,6 +78,7 @@ export default function RolesPage() {
   const [editingRole, setEditingRole] = useState<RoleItem | null>(null);
   const [editNombre, setEditNombre] = useState('');
   const [editDescripcion, setEditDescripcion] = useState('');
+  const [editRequiereDosPasos, setEditRequiereDosPasos] = useState(false);
   const [editSelectedPermisos, setEditSelectedPermisos] = useState<string[]>([]);
   const [editSaving, setEditSaving] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
@@ -166,6 +169,7 @@ export default function RolesPage() {
           id: newId.trim().toUpperCase(),
           nombre: newNombre.trim(),
           descripcion: newDescripcion.trim(),
+          requiereDosPasos: newRequiereDosPasos,
           permisos: newSelectedPermisos,
         }),
       });
@@ -179,6 +183,7 @@ export default function RolesPage() {
       setNewId('');
       setNewNombre('');
       setNewDescripcion('');
+      setNewRequiereDosPasos(false);
       setNewSelectedPermisos([]);
       toast.show('Nuevo rol institucional creado exitosamente.');
       await fetchRolesData();
@@ -193,6 +198,7 @@ export default function RolesPage() {
     setEditingRole(role);
     setEditNombre(role.nombre);
     setEditDescripcion(role.descripcion || '');
+    setEditRequiereDosPasos(Boolean(role.requiereDosPasos));
     setEditSelectedPermisos(role.permisosIds || []);
     setEditError(null);
   };
@@ -209,6 +215,7 @@ export default function RolesPage() {
         body: JSON.stringify({
           nombre: editNombre.trim(),
           descripcion: editDescripcion.trim(),
+          requiereDosPasos: editRequiereDosPasos,
           permisos: editSelectedPermisos,
         }),
       });
@@ -319,6 +326,7 @@ export default function RolesPage() {
               <Th>Identificador del Rol</Th>
               <Th>Nombre Oficial / Descripción</Th>
               <Th>Tipo</Th>
+              <Th>Seguridad 2FA</Th>
               <Th>Funcionarios</Th>
               <Th>Permisos Asignados</Th>
               <Th className="text-center">Acciones</Th>
@@ -341,6 +349,18 @@ export default function RolesPage() {
                     <Badge tone={item.esSistema ? 'brand' : 'accent'}>
                       {item.esSistema ? 'Primordial (Sistema)' : 'Personalizado'}
                     </Badge>
+                  </Td>
+                  <Td>
+                    {item.requiereDosPasos ? (
+                      <Badge tone="success" className="text-[11px] gap-1 inline-flex items-center">
+                        <ShieldCheck className="h-3 w-3" />
+                        <span>Obligatorio</span>
+                      </Badge>
+                    ) : (
+                      <Badge tone="neutral" className="text-[11px] text-ink-tertiary">
+                        Opcional
+                      </Badge>
+                    )}
                   </Td>
                   <Td className="font-mono text-xs text-ink-secondary">
                     <span className="inline-flex items-center gap-1.5">
@@ -486,6 +506,30 @@ export default function RolesPage() {
                 />
               </div>
 
+              {/* Opción de Verificación en 2 pasos (2FA) */}
+              <div className="p-3.5 rounded-xl bg-paper border border-border-soft flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-brand-surface text-brand shrink-0">
+                    <ShieldCheck className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <label htmlFor="new-requiere-2fa" className="text-xs font-bold text-ink cursor-pointer block">
+                      Verificación en 2 pasos obligatoria
+                    </label>
+                    <p className="text-[11px] text-ink-tertiary">
+                      Requerida desde el primer acceso para todos los usuarios asignados a este rol.
+                    </p>
+                  </div>
+                </div>
+                <input
+                  id="new-requiere-2fa"
+                  type="checkbox"
+                  checked={newRequiereDosPasos}
+                  onChange={(e) => setNewRequiereDosPasos(e.target.checked)}
+                  className="h-4 w-4 rounded border-border-soft text-brand focus:ring-brand cursor-pointer shrink-0"
+                />
+              </div>
+
               {/* Matriz de Permisos */}
               <div className="pt-3 border-t border-border-soft">
                 <div className="flex items-center justify-between mb-3">
@@ -622,6 +666,30 @@ export default function RolesPage() {
                     className="text-sm"
                   />
                 </div>
+              </div>
+
+              {/* Opción de Verificación en 2 pasos (2FA) */}
+              <div className="p-3.5 rounded-xl bg-paper border border-border-soft flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-brand-surface text-brand shrink-0">
+                    <ShieldCheck className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <label htmlFor="edit-requiere-2fa" className="text-xs font-bold text-ink cursor-pointer block">
+                      Verificación en 2 pasos obligatoria
+                    </label>
+                    <p className="text-[11px] text-ink-tertiary">
+                      Requerida desde el primer acceso para todos los usuarios asignados a este rol.
+                    </p>
+                  </div>
+                </div>
+                <input
+                  id="edit-requiere-2fa"
+                  type="checkbox"
+                  checked={editRequiereDosPasos}
+                  onChange={(e) => setEditRequiereDosPasos(e.target.checked)}
+                  className="h-4 w-4 rounded border-border-soft text-brand focus:ring-brand cursor-pointer shrink-0"
+                />
               </div>
 
               {/* Matriz de Permisos */}
