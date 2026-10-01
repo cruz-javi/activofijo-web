@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect, useCallback } from 'react';
 import { 
   Archive, 
   Users, 
@@ -10,7 +11,6 @@ import {
   Fingerprint,
   Tag,
   ClipboardList,
-  MapPin,
   LucideIcon 
 } from 'lucide-react';
 import Link from 'next/link';
@@ -72,8 +72,42 @@ const ALL_SHORTCUTS: ShortcutItem[] = [
 
 export default function DashboardPage() {
   const { user, isAdmin, hasPermiso, roleLabel } = useCurrentUser();
+  const [metricas, setMetricas] = useState<{
+    totalActivos: number;
+    totalAsignados: number;
+    totalEtiquetasVigentes: number;
+  }>({
+    totalActivos: 0,
+    totalAsignados: 0,
+    totalEtiquetasVigentes: 0,
+  });
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Filtrar atajos estrictamente según permisos para evitar fugas de información
+  const cargarMetricas = useCallback(async () => {
+    try {
+      const res = await fetch('/api/proxy/activos/resumen-dashboard');
+      if (res.ok) {
+        const json = await res.json();
+        if (json?.kpis) {
+          setMetricas({
+            totalActivos: json.kpis.totalActivos ?? 0,
+            totalAsignados: json.kpis.totalAsignados ?? 0,
+            totalEtiquetasVigentes: json.kpis.totalEtiquetasVigentes ?? 0,
+          });
+        }
+      }
+    } catch (e) {
+      console.warn('No se pudieron obtener métricas:', e);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    cargarMetricas();
+  }, [cargarMetricas]);
+
+  // Filtrar atajos estrictamente según permisos para evitar accesos indebidos
   const authorizedShortcuts = ALL_SHORTCUTS.filter((item) => {
     if (isAdmin) return true;
     if (!item.permiso) return true;
@@ -91,8 +125,9 @@ export default function DashboardPage() {
         </p>
       </header>
 
-      {/* Metrics Row */}
+      {/* Indicadores Básicos Reales desde Base de Datos */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-9">
+        {/* Total Activos */}
         <div className="bg-paper-raised border border-border-soft p-5 rounded-xl shadow-xs flex flex-col group hover:border-border transition-colors">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-xs font-semibold text-ink-tertiary uppercase tracking-wider">
@@ -103,11 +138,16 @@ export default function DashboardPage() {
             </div>
           </div>
           <div className="flex flex-col">
-            <span className="text-2xl font-bold text-ink font-mono tabular-nums">14,230</span>
-            <span className="text-[11px] text-ink-secondary mt-1">Bienes registrados en inventario</span>
+            <span className="text-2xl font-bold text-ink font-mono tabular-nums">
+              {isLoading ? '...' : metricas.totalActivos.toLocaleString('es-BO')}
+            </span>
+            <span className="text-[11px] text-ink-secondary mt-1">
+              Bienes registrados en inventario
+            </span>
           </div>
         </div>
 
+        {/* Asignaciones */}
         <div className="bg-paper-raised border border-border-soft p-5 rounded-xl shadow-xs flex flex-col group hover:border-border transition-colors">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-xs font-semibold text-ink-tertiary uppercase tracking-wider">
@@ -118,43 +158,57 @@ export default function DashboardPage() {
             </div>
           </div>
           <div className="flex flex-col">
-            <span className="text-2xl font-bold text-ink font-mono tabular-nums">3,105</span>
-            <span className="text-[11px] text-ink-secondary mt-1">Actas PB-14 vigentes</span>
+            <span className="text-2xl font-bold text-ink font-mono tabular-nums">
+              {isLoading ? '...' : metricas.totalAsignados.toLocaleString('es-BO')}
+            </span>
+            <span className="text-[11px] text-ink-secondary mt-1">
+              Bienes bajo custodia formal
+            </span>
           </div>
         </div>
 
+        {/* Identificadores / Etiquetas */}
         <div className="bg-paper-raised border border-border-soft p-5 rounded-xl shadow-xs flex flex-col group hover:border-border transition-colors">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-xs font-semibold text-ink-tertiary uppercase tracking-wider">
-              Inspecciones
+              Identificadores
             </h3>
             <div className="h-8 w-8 rounded-lg bg-accent-surface text-accent-strong flex items-center justify-center">
-              <MapPin className="h-4 w-4" />
+              <Tag className="h-4 w-4" />
             </div>
           </div>
           <div className="flex flex-col">
-            <span className="text-2xl font-bold text-ink font-mono tabular-nums">42</span>
-            <span className="text-[11px] text-ink-secondary mt-1">En curso durante este período</span>
+            <span className="text-2xl font-bold text-ink font-mono tabular-nums">
+              {isLoading ? '...' : metricas.totalEtiquetasVigentes.toLocaleString('es-BO')}
+            </span>
+            <span className="text-[11px] text-ink-secondary mt-1">
+              Etiquetas QR / Barras vigentes
+            </span>
           </div>
         </div>
 
+        {/* Período Contable Vigente */}
         <div className="bg-paper-raised border border-border-soft p-5 rounded-xl shadow-xs flex flex-col group hover:border-border transition-colors">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-xs font-semibold text-ink-tertiary uppercase tracking-wider">
-              Trámites
+              Gestión Vigente
             </h3>
-            <div className="h-8 w-8 rounded-lg bg-danger-surface text-danger flex items-center justify-center">
-              <Users className="h-4 w-4" />
+            <div className="h-8 w-8 rounded-lg bg-paper border border-border-soft text-ink flex items-center justify-center">
+              <ShieldCheck className="h-4 w-4" />
             </div>
           </div>
           <div className="flex flex-col">
-            <span className="text-2xl font-bold text-ink font-mono tabular-nums">18</span>
-            <span className="text-[11px] text-ink-secondary mt-1">Bajas y transferencias activas</span>
+            <span className="text-2xl font-bold text-ink font-mono tabular-nums">
+              2026
+            </span>
+            <span className="text-[11px] text-ink-secondary mt-1">
+              Período contable institucional
+            </span>
           </div>
         </div>
       </div>
 
-      {/* Shortcuts */}
+      {/* Accesos Rápidos Autorizados */}
       <div className="mb-4 flex items-center justify-between">
         <h2 className="text-base font-bold text-ink font-serif tracking-tight">
           Accesos Rápidos Autorizados

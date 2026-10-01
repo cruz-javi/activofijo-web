@@ -19,7 +19,10 @@ async function handleProxy(req: NextRequest, { params }: { params: Promise<{ pat
     'user-agent': userAgent,
   };
 
-  if (accessToken) {
+  const incomingAuth = req.headers.get('authorization');
+  if (incomingAuth) {
+    headers['Authorization'] = incomingAuth;
+  } else if (accessToken) {
     headers['Authorization'] = `Bearer ${accessToken}`;
   }
 
