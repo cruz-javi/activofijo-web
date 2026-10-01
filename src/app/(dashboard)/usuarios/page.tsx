@@ -2,13 +2,25 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, X, ShieldAlert, Unlock, ArrowLeft, Check, Edit3, KeyRound, RefreshCw, Search } from 'lucide-react';
+import { 
+  X, 
+  ShieldAlert, 
+  Unlock, 
+  ArrowLeft, 
+  Check, 
+  Edit3, 
+  KeyRound, 
+  RefreshCw, 
+  Search,
+  Eye,
+  EyeOff,
+  UserPlus,
+  UserCheck
+} from 'lucide-react';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
-import { Field } from '@/components/ui/Field';
 import { FilterBar } from '@/components/ui/FilterBar';
 import { FilterField } from '@/components/ui/FilterField';
-import { FormSection } from '@/components/ui/FormSection';
 import { IconButton } from '@/components/ui/IconButton';
 import { Input } from '@/components/ui/Input';
 import { LoadingPanel } from '@/components/ui/LoadingPanel';
@@ -94,8 +106,9 @@ export default function UsuariosPage() {
   const [filtroEstado, setFiltroEstado] = useState(FILTRO_TODOS);
   const [filtroDosPasos, setFiltroDosPasos] = useState(FILTRO_TODOS);
 
-  // Form state (alta)
-  const [showForm, setShowForm] = useState(false);
+  // Modal Crear Usuario
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showCreatePassword, setShowCreatePassword] = useState(false);
   const [nombre, setNombre] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -105,13 +118,54 @@ export default function UsuariosPage() {
   const [createSaving, setCreateSaving] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
 
-  // Form state (edición)
+  // Modal Editar Usuario
   const [editingItem, setEditingItem] = useState<UsuarioItem | null>(null);
   const [editRol, setEditRol] = useState<string>('FUNCIONARIO');
   const [editActivo, setEditActivo] = useState(true);
   const [editEstado, setEditEstado] = useState<string>('ACTIVO');
   const [editSaving, setEditSaving] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
+
+  const resetCreateForm = () => {
+    setNombre('');
+    setEmail('');
+    setPassword('');
+    setCargoInstitucional('');
+    setCodigoEmpleadoLegado('');
+    setRol('FUNCIONARIO');
+    setCreateError(null);
+    setShowCreatePassword(false);
+  };
+
+  const handleCloseCreateModal = () => {
+    setShowCreateModal(false);
+    resetCreateForm();
+  };
+
+  const cancelEdit = () => {
+    setEditingItem(null);
+    setEditError(null);
+  };
+
+  const startEdit = (item: UsuarioItem) => {
+    setShowCreateModal(false);
+    setEditingItem(item);
+    setEditRol((item.roles && item.roles[0]) || item.rol || 'FUNCIONARIO');
+    setEditActivo(item.activo);
+    setEditEstado(item.estado || (item.activo ? 'ACTIVO' : 'INACTIVO'));
+    setEditError(null);
+  };
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (showCreateModal) handleCloseCreateModal();
+        if (editingItem) cancelEdit();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showCreateModal, editingItem]);
 
   const [roleOptions, setRoleOptions] = useState<{ id: string; label: string }[]>(
     ROLE_OPTIONS.map((o) => ({ id: o.id, label: o.label }))
@@ -194,13 +248,7 @@ export default function UsuariosPage() {
         throw new Error(extractErrorMessage(errData, 'Error al registrar el usuario institucional'));
       }
 
-      setShowForm(false);
-      setNombre('');
-      setEmail('');
-      setPassword('');
-      setCargoInstitucional('');
-      setCodigoEmpleadoLegado('');
-      setRol('FUNCIONARIO');
+      handleCloseCreateModal();
       toast.show('Usuario institucional registrado correctamente.');
       await fetchUsuarios();
     } catch (err: any) {
@@ -209,17 +257,6 @@ export default function UsuariosPage() {
       setCreateSaving(false);
     }
   };
-
-  const startEdit = (item: UsuarioItem) => {
-    setShowForm(false);
-    setEditingItem(item);
-    setEditRol((item.roles && item.roles[0]) || item.rol || 'FUNCIONARIO');
-    setEditActivo(item.activo);
-    setEditEstado(item.estado || (item.activo ? 'ACTIVO' : 'INACTIVO'));
-    setEditError(null);
-  };
-
-  const cancelEdit = () => setEditingItem(null);
 
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -356,22 +393,14 @@ export default function UsuariosPage() {
           <div className="flex items-center gap-2.5">
             <Button
               onClick={() => {
-                setEditingItem(null);
-                setCreateError(null);
-                setShowForm(!showForm);
+                cancelEdit();
+                resetCreateForm();
+                setShowCreateModal(true);
               }}
+              className="inline-flex items-center gap-2 cursor-pointer"
             >
-              {showForm ? (
-                <>
-                  <X className="h-4 w-4" />
-                  Cancelar
-                </>
-              ) : (
-                <>
-                  <Plus className="h-4 w-4" />
-                  Nuevo Usuario
-                </>
-              )}
+              <UserPlus className="h-4 w-4" />
+              <span>Nuevo Usuario</span>
             </Button>
             <Button
               variant="ghost"
@@ -385,152 +414,6 @@ export default function UsuariosPage() {
         }
       />
 
-      {showForm && (
-        <Panel className="mb-6">
-          <div className="mb-5 flex items-center gap-2">
-            <Badge tone="brand">Alta de Usuario Institucional</Badge>
-          </div>
-          {createError && (
-            <div className="mb-4 rounded-lg border border-danger/25 bg-danger-surface px-4 py-3 text-sm text-danger">
-              {createError}
-            </div>
-          )}
-          <form onSubmit={handleCreate} className="flex flex-col gap-5">
-            <FormSection title="Datos de Identificación del Funcionario">
-              <Field label="Nombre completo" htmlFor="nombre" className="md:col-span-2">
-                <Input
-                  id="nombre"
-                  type="text"
-                  value={nombre}
-                  onChange={(e) => setNombre(e.target.value)}
-                  placeholder="Ej. Ing. Javier Cruz Rocha"
-                  required
-                  minLength={3}
-                />
-              </Field>
-              <Field label="Cargo Institucional" htmlFor="cargoInstitucional">
-                <Input
-                  id="cargoInstitucional"
-                  type="text"
-                  value={cargoInstitucional}
-                  onChange={(e) => setCargoInstitucional(e.target.value)}
-                  placeholder="Ej. Encargado de Activos Fijos"
-                />
-              </Field>
-              <Field label="Código de Funcionario Legado" htmlFor="codigoEmpleadoLegado">
-                <Input
-                  id="codigoEmpleadoLegado"
-                  type="number"
-                  value={codigoEmpleadoLegado}
-                  onChange={(e) => setCodigoEmpleadoLegado(e.target.value)}
-                  placeholder="Ej. 1001"
-                />
-              </Field>
-              <Field label="Rol Institucional Asignado" htmlFor="rol" className="md:col-span-2">
-                <Select id="rol" value={rol} onChange={(e) => setRol(e.target.value)}>
-                  {roleOptions.map((opt) => (
-                    <option key={opt.id} value={opt.id}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </Select>
-              </Field>
-            </FormSection>
-
-            <FormSection title="Credenciales Institucionales">
-              <Field label="Correo Institucional UAGRM" htmlFor="email">
-                <Input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="usuario@uagrm.edu.bo"
-                  required
-                />
-              </Field>
-              <Field label="Contraseña Inicial" htmlFor="password">
-                <Input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Mínimo 8 caracteres"
-                  required
-                  minLength={8}
-                />
-              </Field>
-            </FormSection>
-
-            <div>
-              <Button type="submit" disabled={createSaving}>
-                {createSaving ? 'Guardando…' : 'Crear Usuario'}
-              </Button>
-            </div>
-          </form>
-        </Panel>
-      )}
-
-      {editingItem && (
-        <Panel className="mb-6">
-          <div className="mb-5 flex items-center gap-3">
-            <Badge tone={ROL_TONE[editRol] ?? 'neutral'}>{getRoleLabel(editRol)}</Badge>
-            <span className="text-xs text-ink-tertiary">{editingItem.email}</span>
-          </div>
-          {editError && (
-            <div className="mb-4 rounded-lg border border-danger/25 bg-danger-surface px-4 py-3 text-sm text-danger">
-              {editError}
-            </div>
-          )}
-          <form onSubmit={handleUpdate} className="flex flex-col gap-5">
-            <FormSection title="Asignación de Rol y Estado de Seguridad">
-              <Field label="Rol Institucional" htmlFor="edit-rol">
-                <Select
-                  id="edit-rol"
-                  value={editRol}
-                  onChange={(e) => setEditRol(e.target.value)}
-                >
-                  {roleOptions.map((opt) => (
-                    <option key={opt.id} value={opt.id}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </Select>
-              </Field>
-              <Field label="Estado de Cuenta / Seguridad" htmlFor="edit-estado">
-                <Select
-                  id="edit-estado"
-                  value={editEstado}
-                  onChange={(e) => {
-                    const st = e.target.value;
-                    setEditEstado(st);
-                    setEditActivo(st === 'ACTIVO');
-                  }}
-                  disabled={editingItem.id === currentUser?.id}
-                >
-                  <option value="ACTIVO">ACTIVO (Habilitado)</option>
-                  <option value="BLOQUEADO_INTENTOS">BLOQUEADO_INTENTOS (Bloqueo Seguridad)</option>
-                  <option value="SUSPENDIDO_AUDITORIA">SUSPENDIDO_AUDITORIA (Suspensión)</option>
-                  <option value="INACTIVO">INACTIVO (Baja Lógica)</option>
-                </Select>
-              </Field>
-            </FormSection>
-            {editingItem.id === currentUser?.id && (
-              <p className="text-xs text-ink-tertiary">
-                No puede modificar el estado de su propia cuenta de Administrador.
-              </p>
-            )}
-
-            <div className="flex items-center gap-2">
-              <Button type="submit" disabled={editSaving}>
-                {editSaving ? 'Guardando…' : 'Guardar Cambios'}
-              </Button>
-              <Button type="button" variant="secondary" onClick={cancelEdit}>
-                Cancelar
-              </Button>
-            </div>
-          </form>
-        </Panel>
-      )}
 
       <FilterBar>
         <FilterField label="Búsqueda por nombre / correo / cargo" className="lg:col-span-2">
@@ -712,6 +595,283 @@ export default function UsuariosPage() {
             })}
           </TBody>
         </TableCard>
+      )}
+
+      {/* Modal Crear Usuario */}
+      {showCreateModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200"
+          role="dialog"
+          aria-modal="true"
+          onClick={handleCloseCreateModal}
+        >
+          <div
+            className="relative w-full max-w-2xl bg-paper-raised border border-border-soft rounded-2xl shadow-xl overflow-hidden p-6 sm:p-7 max-h-[90vh] flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={handleCloseCreateModal}
+              type="button"
+              aria-label="Cerrar ventana modal"
+              className="absolute top-4 right-4 h-8 w-8 rounded-full flex items-center justify-center text-ink-tertiary hover:text-ink hover:bg-paper transition-colors cursor-pointer"
+            >
+              <X className="h-4 w-4" />
+            </button>
+
+            <div className="flex items-center gap-3 mb-4 pb-3 border-b border-border-soft shrink-0">
+              <div className="h-10 w-10 rounded-xl bg-brand-surface text-brand flex items-center justify-center shrink-0">
+                <UserPlus className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="font-bold text-ink text-base font-serif">
+                  Alta de Usuario Institucional
+                </h3>
+                <p className="text-xs text-ink-tertiary">
+                  Registre un nuevo funcionario y asigne su rol inicial en el sistema
+                </p>
+              </div>
+            </div>
+
+            {createError && (
+              <div className="mb-4 rounded-lg border border-danger/25 bg-danger-surface p-3 text-xs text-danger shrink-0">
+                {createError}
+              </div>
+            )}
+
+            <form onSubmit={handleCreate} className="flex-1 overflow-y-auto space-y-4 pr-1 scrollbar-thin">
+              <div className="space-y-4">
+                <div className="text-xs font-bold text-ink uppercase tracking-wider pb-1 border-b border-border-soft">
+                  Datos de Identificación del Funcionario
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-ink mb-1">
+                    Nombre Completo *
+                  </label>
+                  <Input
+                    id="nombre"
+                    type="text"
+                    value={nombre}
+                    onChange={(e) => setNombre(e.target.value)}
+                    placeholder="Ej. Ing. Javier Cruz Rocha"
+                    required
+                    minLength={3}
+                    className="text-sm"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-ink mb-1">
+                      Cargo Institucional
+                    </label>
+                    <Input
+                      id="cargoInstitucional"
+                      type="text"
+                      value={cargoInstitucional}
+                      onChange={(e) => setCargoInstitucional(e.target.value)}
+                      placeholder="Ej. Encargado de Activos Fijos"
+                      className="text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-ink mb-1">
+                      Código de Funcionario Legado
+                    </label>
+                    <Input
+                      id="codigoEmpleadoLegado"
+                      type="number"
+                      value={codigoEmpleadoLegado}
+                      onChange={(e) => setCodigoEmpleadoLegado(e.target.value)}
+                      placeholder="Ej. 1001"
+                      className="text-sm"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-ink mb-1">
+                    Rol Institucional Asignado *
+                  </label>
+                  <Select id="rol" value={rol} onChange={(e) => setRol(e.target.value)} className="text-sm">
+                    {roleOptions.map((opt) => (
+                      <option key={opt.id} value={opt.id}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </Select>
+                </div>
+
+                <div className="text-xs font-bold text-ink uppercase tracking-wider pt-2 pb-1 border-b border-border-soft">
+                  Credenciales de Acceso
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-ink mb-1">
+                      Correo Institucional UAGRM *
+                    </label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="usuario@uagrm.edu.bo"
+                      required
+                      className="text-sm"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-ink mb-1">
+                      Contraseña Inicial *
+                    </label>
+                    <div className="relative">
+                      <Input
+                        id="password"
+                        type={showCreatePassword ? 'text' : 'password'}
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="Mínimo 8 caracteres"
+                        required
+                        minLength={8}
+                        className="pr-10 text-sm"
+                      />
+                      <button
+                        type="button"
+                        tabIndex={-1}
+                        onClick={() => setShowCreatePassword(!showCreatePassword)}
+                        className="absolute inset-y-0 right-0 pr-3 flex items-center text-ink-tertiary hover:text-ink cursor-pointer"
+                        title={showCreatePassword ? 'Ocultar contraseña' : 'Ver contraseña'}
+                        aria-label={showCreatePassword ? 'Ocultar contraseña' : 'Ver contraseña'}
+                      >
+                        {showCreatePassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
+                    <span className="text-[10px] text-ink-tertiary mt-1 block">
+                      El usuario podrá cambiarla desde su perfil institucional.
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-4 border-t border-border-soft flex items-center justify-end gap-2.5 sticky bottom-0 bg-paper-raised py-2">
+                <Button type="button" variant="secondary" onClick={handleCloseCreateModal}>
+                  Cancelar
+                </Button>
+                <Button type="submit" disabled={createSaving} className="cursor-pointer">
+                  {createSaving ? 'Guardando…' : 'Crear Usuario'}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Editar Usuario */}
+      {editingItem && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200"
+          role="dialog"
+          aria-modal="true"
+          onClick={cancelEdit}
+        >
+          <div
+            className="relative w-full max-w-xl bg-paper-raised border border-border-soft rounded-2xl shadow-xl overflow-hidden p-6 sm:p-7 max-h-[90vh] flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={cancelEdit}
+              type="button"
+              aria-label="Cerrar ventana modal"
+              className="absolute top-4 right-4 h-8 w-8 rounded-full flex items-center justify-center text-ink-tertiary hover:text-ink hover:bg-paper transition-colors cursor-pointer"
+            >
+              <X className="h-4 w-4" />
+            </button>
+
+            <div className="flex items-center gap-3 mb-4 pb-3 border-b border-border-soft shrink-0">
+              <div className="h-10 w-10 rounded-xl bg-brand-surface text-brand flex items-center justify-center shrink-0">
+                <UserCheck className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="font-bold text-ink text-base font-serif">
+                  Modificar Rol y Estado de Seguridad
+                </h3>
+                <p className="text-xs text-ink-tertiary">
+                  {editingItem.nombreCompleto || editingItem.nombre} &bull; <span className="font-mono">{editingItem.email}</span>
+                </p>
+              </div>
+            </div>
+
+            {editError && (
+              <div className="mb-4 rounded-lg border border-danger/25 bg-danger-surface p-3 text-xs text-danger shrink-0">
+                {editError}
+              </div>
+            )}
+
+            <form onSubmit={handleUpdate} className="flex-1 overflow-y-auto space-y-4 pr-1 scrollbar-thin">
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-xs font-semibold text-ink mb-1">
+                    Rol Institucional Asignado *
+                  </label>
+                  <Select
+                    id="edit-rol"
+                    value={editRol}
+                    onChange={(e) => setEditRol(e.target.value)}
+                    className="text-sm"
+                  >
+                    {roleOptions.map((opt) => (
+                      <option key={opt.id} value={opt.id}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </Select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-ink mb-1">
+                    Estado de Cuenta / Nivel de Seguridad *
+                  </label>
+                  <Select
+                    id="edit-estado"
+                    value={editEstado}
+                    onChange={(e) => {
+                      const st = e.target.value;
+                      setEditEstado(st);
+                      setEditActivo(st === 'ACTIVO');
+                    }}
+                    disabled={editingItem.id === currentUser?.id}
+                    className="text-sm"
+                  >
+                    <option value="ACTIVO">ACTIVO (Habilitado)</option>
+                    <option value="BLOQUEADO_INTENTOS">BLOQUEADO_INTENTOS (Bloqueo Seguridad)</option>
+                    <option value="SUSPENDIDO_AUDITORIA">SUSPENDIDO_AUDITORIA (Suspensión)</option>
+                    <option value="INACTIVO">INACTIVO (Baja Lógica)</option>
+                  </Select>
+                </div>
+
+                {editingItem.id === currentUser?.id && (
+                  <div className="rounded-lg border border-accent/30 bg-accent-surface p-3 text-xs text-accent-strong flex items-start gap-2">
+                    <ShieldAlert className="h-4 w-4 shrink-0 mt-0.5" />
+                    <span>
+                      No puede suspender, bloquear ni dar de baja su propia cuenta de Administrador mientras se encuentre en sesión activa.
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              <div className="pt-4 border-t border-border-soft flex items-center justify-end gap-2.5 sticky bottom-0 bg-paper-raised py-2">
+                <Button type="button" variant="secondary" onClick={cancelEdit}>
+                  Cancelar
+                </Button>
+                <Button type="submit" disabled={editSaving} className="cursor-pointer">
+                  {editSaving ? 'Guardando…' : 'Guardar Cambios'}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
     </>
   );
